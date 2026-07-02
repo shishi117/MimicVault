@@ -11,4 +11,8 @@
   },
   "remoteUser": "vscode",
   "postCreateCommand": "sudo chown -R vscode:vscode /home/vscode/.claude"
+
+  // git config --global user.email yilfyf05255efv40227081061@gmail.com
+  // git config --global user.name shishi117
+  
 }
