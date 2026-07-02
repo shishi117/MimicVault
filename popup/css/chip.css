@@ -1,0 +1,12 @@
+/* popup/css/chip.css — MimicVault: 検出元チップ (Blob) */
+
+/* ─── 検出元チップ: Blob（ステップ13） ──────────────────── */
+.meta-chip--blob {
+  background: #fff3e0;
+  color: #a04000;
+}
+
+@media (prefers-color-scheme: dark) {
+  .meta-chip--blob { background: #2a1500; color: #ff9040; }
+}
+

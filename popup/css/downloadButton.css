@@ -1,0 +1,50 @@
+/* popup/css/downloadButton.css — MimicVault: ダウンロードボタン */
+
+/* ─── ダウンロードボタン ────────────────────────────────── */
+.dl-btn {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-sub);
+  font-size: 11px;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: border-color .12s, color .12s, background .12s;
+  white-space: nowrap;
+  margin-top: 1px;
+  min-width: 46px;
+  text-align: center;
+}
+
+.dl-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.dl-btn--downloading {
+  border-color: #f0a500;
+  color: #a06800;
+  background: #fff8e6;
+}
+
+.dl-btn--complete {
+  border-color: #22a06b;
+  color: #22a06b;
+  background: #e8f7f1;
+}
+
+.dl-btn--error {
+  border-color: #c0392b;
+  color: #c0392b;
+}
+
+.dl-btn--error:hover {
+  background: #fdf0ef;
+}
+
+@media (prefers-color-scheme: dark) {
+  .dl-btn--downloading { background: #3a2a00; border-color: #c08000; color: #ffc840; }
+  .dl-btn--complete    { background: #0a2e1e; border-color: #22a06b; color: #4dd9a0; }
+}
+

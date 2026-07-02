@@ -1,0 +1,38 @@
+/* popup/css/base.css — MimicVault: リセット・CSS変数・body */
+
+/* popup.css — MimicVault v0.3.0 */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --accent:    #5f4dbc;
+  --accent-lt: #ede9fb;
+  --text:      #1a1a2e;
+  --text-sub:  #6b6b7e;
+  --border:    #e2e2ee;
+  --bg:        #ffffff;
+  --bg-hover:  #f7f5ff;
+  --radius:    8px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --accent:    #8b78f0;
+    --accent-lt: #2a2350;
+    --text:      #e8e8f4;
+    --text-sub:  #9898b0;
+    --border:    #2e2e44;
+    --bg:        #1a1a2e;
+    --bg-hover:  #22223a;
+  }
+}
+
+body {
+  width: 360px;
+  min-height: 80px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+}
+

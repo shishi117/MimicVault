@@ -1,0 +1,17 @@
+/* popup/css/states.css — MimicVault: 空状態メッセージ */
+
+/* ─── 空状態 ───────────────────────────────────────────── */
+.state-message {
+  padding: 28px 20px 24px;
+  text-align: center;
+}
+
+.state-icon {
+  font-size: 30px;
+  color: var(--border);
+  margin-bottom: 10px;
+}
+
+.state-message p { color: var(--text-sub); line-height: 1.6; }
+.state-hint { font-size: 11px; margin-top: 4px; }
+

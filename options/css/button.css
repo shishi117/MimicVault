@@ -1,0 +1,26 @@
+/* options/css/button.css — MimicVault: ボタン */
+
+/* ─── ボタン ───────────────────────────────────────── */
+.btn {
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-card);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+
+.btn:hover { background: var(--bg-hover); }
+
+.btn--danger {
+  border-color: rgba(224, 82, 96, 0.4);
+  color: var(--danger);
+}
+
+.btn--danger:hover {
+  background: rgba(224, 82, 96, 0.08);
+}
+

@@ -1,0 +1,40 @@
+/* popup/css/companion.css — MimicVault: Companion インジケータ */
+
+/* ─── Companion インジケータ（ステップ15/16） ──────────────────────────────── */
+
+.companion-indicator {
+  margin-left: auto;
+  padding: 0 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  border-radius: 4px;
+  transition: opacity .2s, color .2s;
+  flex-shrink: 0;
+}
+
+/* 未接続: グレーアウト */
+.companion-disconnected {
+  color: var(--text-sub, #888);
+  opacity: 0.45;
+}
+
+/* 接続済み: アクセントカラーで強調 */
+.companion-connected {
+  color: var(--accent, #5f4dbc);
+  opacity: 1;
+}
+
+/* エラー: 赤 */
+.companion-error {
+  color: #e05260;
+  opacity: 1;
+}
+
+.companion-indicator:hover {
+  opacity: 1;
+  background: var(--hover-bg, rgba(0,0,0,.06));
+}
+

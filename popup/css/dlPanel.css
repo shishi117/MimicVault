@@ -1,0 +1,170 @@
+/* popup/css/dlPanel.css — MimicVault: DL パネル */
+
+/* ─── DL パネル（ステップ14） ────────────────────────────── */
+.dl-panel {
+  max-height: 420px;
+  overflow-y: auto;
+  padding: 0;
+}
+
+/* ツールバー行（件数 + 完了をクリアボタン） */
+.dl-panel-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.dl-panel-count {
+  font-size: 11px;
+  color: var(--text-sub);
+}
+
+.dl-clear-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: background .12s, color .12s;
+}
+
+.dl-clear-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.dl-clear-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* 空状態 */
+.dl-empty {
+  padding: 28px 20px;
+  text-align: center;
+  color: var(--text-sub);
+  font-size: 12px;
+}
+
+/* エントリ1件 */
+.dl-entry {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  transition: background .1s;
+}
+
+.dl-entry:last-child { border-bottom: none; }
+.dl-entry:hover { background: var(--bg-hover); }
+
+/* ヘッダー行: バッジ + ファイル名 + アクション */
+.dl-entry-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+/* タイプバッジ */
+.dl-type-badge {
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.dl-type-badge--direct { background: #e8f5e9; color: #2e7d32; }
+.dl-type-badge--hls    { background: #e3f2fd; color: #1565c0; }
+.dl-type-badge--dash   { background: #f3e5f5; color: #6a1b9a; }
+.dl-type-badge--live   { background: #fce4ec; color: #b71c1c; }
+
+@media (prefers-color-scheme: dark) {
+  .dl-type-badge--direct { background: #1b3a1e; color: #66bb6a; }
+  .dl-type-badge--hls    { background: #0d2a40; color: #42a5f5; }
+  .dl-type-badge--dash   { background: #2a0d3a; color: #ba68c8; }
+  .dl-type-badge--live   { background: #3a0d14; color: #ef5350; }
+}
+
+/* ファイル名 */
+.dl-entry-filename {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+/* アクションボタン群 */
+.dl-entry-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.dl-action-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 2px 7px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background .12s, color .12s;
+  color: var(--text-sub);
+}
+
+.dl-action-btn:hover { background: var(--bg-hover); color: var(--text); }
+
+.dl-action-btn--cancel { color: #c62828; border-color: #ffcdd2; }
+.dl-action-btn--cancel:hover { background: #ffebee; color: #b71c1c; }
+
+.dl-action-btn--retry { color: var(--accent); border-color: var(--accent-lt); }
+.dl-action-btn--retry:hover { background: var(--accent-lt); }
+
+@media (prefers-color-scheme: dark) {
+  .dl-action-btn--cancel { color: #ef5350; border-color: #4a1010; }
+  .dl-action-btn--cancel:hover { background: #3a0d0d; }
+}
+
+/* ステータス行 */
+.dl-entry-status-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dl-entry-status {
+  font-size: 11px;
+  color: var(--text-sub);
+}
+
+/* プログレスバー */
+.dl-progress-bar {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.dl-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width .2s;
+  min-width: 4px;
+}
+
+/* ソートセレクトをDLタブ選択時に非表示 */
+.toolbar--dl .sort-select { display: none; }
+

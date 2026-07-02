@@ -1,0 +1,26 @@
+/* options/css/card.css — MimicVault: カード */
+
+/* ─── カード ────────────────────────────────────────── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px 22px;
+}
+
+.card--danger { border-color: rgba(224, 82, 96, 0.3); }
+
+.card-title {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: -.01em;
+}
+
+.card-desc {
+  margin: 0 0 16px;
+  color: var(--text-sub);
+  font-size: 12.5px;
+}
+

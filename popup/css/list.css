@@ -1,0 +1,159 @@
+/* popup/css/list.css — MimicVault: メディアリスト・サムネイル */
+
+/* ─── メディアリスト ────────────────────────────────────── */
+.media-list {
+  list-style: none;
+  max-height: 420px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.media-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  transition: background .12s;
+  cursor: default;
+}
+
+.media-item:last-child { border-bottom: none; }
+.media-item:hover { background: var(--bg-hover); }
+
+/* ── サムネイル ── */
+.media-thumb {
+  flex-shrink: 0;
+  width: 80px;
+  height: 45px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--border);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* プレースホルダー（▶ アイコン）*/
+.media-thumb::before {
+  content: "▶";
+  font-size: 14px;
+  color: var(--text-sub);
+  opacity: .4;
+  position: absolute;
+}
+
+.thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+}
+
+.thumb-img--loaded {
+  display: block;
+}
+
+/* ロード失敗はプレースホルダーのまま */
+.thumb-img--failed {
+  display: none;
+}
+
+/* タグバッジ */
+.tag-badge {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--accent-lt);
+  color: var(--accent);
+  letter-spacing: .02em;
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+/* 情報エリア */
+.media-info { flex: 1; min-width: 0; }
+
+/* ファイル名（URL末尾） */
+.media-filename {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+
+/* ドメイン */
+.media-domain {
+  font-size: 11px;
+  color: var(--text-sub);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* メタ情報行 */
+.media-meta {
+  display: flex;
+  gap: 4px;
+  margin-top: 5px;
+  flex-wrap: wrap;
+}
+
+/* チップ共通 */
+.meta-chip {
+  font-size: 10px;
+  color: var(--text-sub);
+  background: var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  white-space: nowrap;
+}
+
+/* 検出元: DOM（紫）*/
+.meta-chip--dom {
+  background: var(--accent-lt);
+  color: var(--accent);
+}
+
+/* 検出元: Network（緑）*/
+.meta-chip--network {
+  background: #d4f4e8;
+  color: #0a6640;
+}
+
+/* ファイルサイズ（青系）*/
+.meta-chip--size {
+  background: #ddeeff;
+  color: #1a4a7a;
+}
+
+@media (prefers-color-scheme: dark) {
+  .meta-chip--network { background: #0a3d26; color: #4dd9a0; }
+  .meta-chip--size    { background: #0e2a45; color: #74b8f0; }
+}
+
+/* コピーボタン */
+.copy-btn {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-sub);
+  font-size: 11px;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: border-color .12s, color .12s;
+  white-space: nowrap;
+  margin-top: 1px;
+}
+
+.copy-btn:hover  { border-color: var(--accent); color: var(--accent); }
+.copy-btn.copied { border-color: #22a06b; color: #22a06b; }
+

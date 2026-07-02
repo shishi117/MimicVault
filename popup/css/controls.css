@@ -1,0 +1,59 @@
+/* popup/css/controls.css — MimicVault: 設定/全件DL/mux ボタン */
+
+/* ─── 設定ボタン（ステップ18） ─────────────────────────────────────────────── */
+
+.settings-btn {
+  padding: 0 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  border-radius: 4px;
+  color: var(--text-sub);
+  opacity: 0.7;
+  transition: opacity .2s, color .2s, background .2s;
+  flex-shrink: 0;
+}
+
+.settings-btn:hover {
+  opacity: 1;
+  color: var(--accent);
+  background: var(--bg-hover);
+}
+
+/* ─── 全件DLボタン（v0.18.0） ─────────────────────────────────────────────── */
+.dl-all-btn {
+  padding: 2px 8px;
+  background: var(--accent);
+  border: none;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.6;
+  border-radius: 4px;
+  color: #fff;
+  flex-shrink: 0;
+  transition: opacity .2s;
+}
+.dl-all-btn:hover { opacity: .85; }
+.dl-all-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ─── DASH mux ボタン（v0.18.0） ──────────────────────────────────────────── */
+.dash-mux-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-hover);
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 6px 6px;
+}
+.dash-mux-label {
+  font-size: 12px;
+  color: var(--text-sub);
+  flex-shrink: 0;
+}
+.dash-mux-btn {
+  font-size: 11px;
+}

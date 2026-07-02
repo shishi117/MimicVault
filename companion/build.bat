@@ -1,6 +1,6 @@
 @echo off
-:: Media Snatcher companion app - build script (Windows)
-:: Compiles app.js into a single media-snatcher.exe (no Node.js needed to run it).
+:: MimicVault companion app - build script (Windows)
+:: Compiles app.js into a single mimic-vault.exe (no Node.js needed to run it).
 ::
 :: Prerequisite: Bun installed (only on the build machine, not on the target).
 ::   https://bun.sh/  ->  powershell -c "irm bun.sh/install.ps1 | iex"
@@ -17,8 +17,8 @@ if errorlevel 1 (
   exit /b 1
 )
 
-echo === Building media-snatcher.exe ===
-bun build .\app.js --compile --target=bun-windows-x64 --outfile media-snatcher.exe
+echo === Building mimic-vault.exe ===
+bun build .\app.js --compile --target=bun-windows-x64 --outfile mimic-vault.exe
 if errorlevel 1 (
   echo [ERROR] Build failed.
   pause
@@ -26,7 +26,7 @@ if errorlevel 1 (
 )
 
 echo.
-echo [OK] media-snatcher.exe created.
+echo [OK] mimic-vault.exe created.
 echo.
 echo Next steps:
 echo   1. Put ffmpeg.exe in this folder (for a zero-dependency build)

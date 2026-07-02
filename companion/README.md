@@ -1,6 +1,10 @@
-# Media Snatcher — Companion App
+# MimicVault — Companion App
 
 FFmpeg を使って HLS → MP4 変換（および DASH mux）を行うための Native Messaging companion app です。
+
+> **旧 Media Snatcher からの移行**: Native Messaging ホスト名が `media_snatcher` → `mimic_vault` に変わりました。
+> 以前 companion をインストールしている場合は、古いホスト登録を削除（下記「アンインストール」参照）してから
+> `install.sh` / `install.bat` を再実行してください。再登録後は Firefox の再起動が必要です。
 
 配布形態は2通りあります。
 
@@ -19,15 +23,15 @@ FFmpeg を使って HLS → MP4 変換（および DASH mux）を行うための
 build.bat
 ```
 
-（中身は `bun build .\app.js --compile --target=bun-windows-x64 --outfile media-snatcher.exe` の1行です。他OSからのクロスビルドも同じコマンドで可能。Bun を使いたくない場合は Node.js 公式の SEA でも作れますが手順は増えます。）
+（中身は `bun build .\app.js --compile --target=bun-windows-x64 --outfile mimic-vault.exe` の1行です。他OSからのクロスビルドも同じコマンドで可能。Bun を使いたくない場合は Node.js 公式の SEA でも作れますが手順は増えます。）
 
 ### 2. ffmpeg.exe を同梱する
 
-FFmpeg の Windows 用 static ビルド（例: gyan.dev / BtbN のリリース）から `ffmpeg.exe` を取得し、`media-snatcher.exe` と**同じフォルダ**に置きます。companion は同フォルダの `ffmpeg.exe` を自動で見つけます（無ければ PATH 上の ffmpeg にフォールバック）。
+FFmpeg の Windows 用 static ビルド（例: gyan.dev / BtbN のリリース）から `ffmpeg.exe` を取得し、`mimic-vault.exe` と**同じフォルダ**に置きます。companion は同フォルダの `ffmpeg.exe` を自動で見つけます（無ければ PATH 上の ffmpeg にフォールバック）。
 
 ### 3. 配布・インストール
 
-`media-snatcher.exe` / `ffmpeg.exe` / `native-manifest.json` / `install.bat` を1フォルダにまとめて配布します。利用者は `install.bat` を実行するだけ（管理者権限不要、`HKCU` に登録）。
+`mimic-vault.exe` / `ffmpeg.exe` / `native-manifest.json` / `install.bat` を1フォルダにまとめて配布します。利用者は `install.bat` を実行するだけ（管理者権限不要、`HKCU` に登録）。
 
 > 配布時の注意: 署名なし exe は Windows SmartScreen の警告が出ることがあり、コンパイル済み JS の exe はまれにウイルス対策ソフトに誤検知されます。広く配るなら **コード署名証明書**の利用を検討してください。
 
@@ -48,7 +52,7 @@ FFmpeg の Windows 用 static ビルド（例: gyan.dev / BtbN のリリース�
 
 ```bash
 cd companion/
-chmod +x install.sh media-snatcher
+chmod +x install.sh mimic-vault
 ./install.sh
 ```
 
@@ -81,12 +85,12 @@ Firefox を再起動すると、拡張機能のポップアップ右上に compa
 ### macOS
 
 ```bash
-rm ~/Library/Application\ Support/Mozilla/NativeMessagingHosts/media_snatcher.json
+rm ~/Library/Application\ Support/Mozilla/NativeMessagingHosts/mimic_vault.json
 ```
 
 ### Windows
 
 ```
-reg delete "HKCU\Software\Mozilla\NativeMessagingHosts\media_snatcher" /f
-del "%APPDATA%\media_snatcher\native-manifest.json"
+reg delete "HKCU\Software\Mozilla\NativeMessagingHosts\mimic_vault" /f
+del "%APPDATA%\mimic_vault\native-manifest.json"
 ```

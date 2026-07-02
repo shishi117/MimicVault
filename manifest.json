@@ -1,12 +1,12 @@
 {
   "manifest_version": 2,
-  "name": "Media Snatcher",
+  "name": "MimicVault",
   "version": "0.18.0",
   "description": "ページ内の動画URLを検出してダウンロードする",
 
   "browser_specific_settings": {
     "gecko": {
-      "id": "media-snatcher@local",
+      "id": "mimicvault@local",
       "strict_min_version": "91.0"
     }
   },
@@ -32,7 +32,7 @@
     "default_icon": {
       "48": "icons/icon48.png"
     },
-    "default_title": "Media Snatcher",
+    "default_title": "MimicVault",
     "default_badge_background_color": "#5f4dbc"
   },
 
@@ -44,13 +44,41 @@
     },
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"],
+      "js": [
+        "content/mediaDetect.js",
+        "content/thumbnail.js",
+        "content/observe.js"
+      ],
       "run_at": "document_idle"
     }
   ],
 
   "background": {
-    "scripts": ["background.js"],
+    "scripts": [
+      "background/constants.js",
+      "background/settings.js",
+      "background/domainFilter.js",
+      "background/filename.js",
+      "background/mediaStore.js",
+      "background/mediaHelpers.js",
+      "background/urlHelpers.js",
+      "background/webRequest.js",
+      "background/hlsMasterParse.js",
+      "background/hlsMediaParse.js",
+      "background/hlsCrypto.js",
+      "background/hlsDownload.js",
+      "background/liveRecording.js",
+      "background/liveSegments.js",
+      "background/fetchDashInfo.js",
+      "background/parseMpd.js",
+      "background/dashSegments.js",
+      "background/downloadDashTrack.js",
+      "background/downloadDashAndMux.js",
+      "background/companion.js",
+      "background/companionHls.js",
+      "background/messageRouter.js",
+      "background/tabs.js"
+    ],
     "persistent": false
   },
 

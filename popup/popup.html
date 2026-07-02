@@ -3,15 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Media Snatcher</title>
-  <link rel="stylesheet" href="popup.css">
+  <title>MimicVault</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/header.css">
+  <link rel="stylesheet" href="css/toolbar.css">
+  <link rel="stylesheet" href="css/states.css">
+  <link rel="stylesheet" href="css/list.css">
+  <link rel="stylesheet" href="css/hls.css">
+  <link rel="stylesheet" href="css/downloadButton.css">
+  <link rel="stylesheet" href="css/footer.css">
+  <link rel="stylesheet" href="css/live.css">
+  <link rel="stylesheet" href="css/dash.css">
+  <link rel="stylesheet" href="css/chip.css">
+  <link rel="stylesheet" href="css/dlPanel.css">
+  <link rel="stylesheet" href="css/companion.css">
+  <link rel="stylesheet" href="css/controls.css">
 </head>
 <body>
 
   <!-- ヘッダー -->
   <header class="header">
-    <span class="header-icon">⬡</span>
-    <span class="header-title">Media Snatcher</span>
+    <span class="header-icon">🧰</span>
+    <span class="header-title">MimicVault</span>
     <span id="badge" class="badge hidden">0</span>
     <!-- コンパニオンボタン: 全件DL（v0.18.0）-->
     <button id="dl-all-btn"
@@ -73,6 +86,25 @@
     <button id="clear-btn" class="clear-btn hidden">クリア</button>
   </footer>
 
-  <script src="popup.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/companionIndicator.js"></script>
+  <script src="js/mediaType.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/renderList.js"></script>
+  <script src="js/buildItem.js"></script>
+  <script src="js/thumbnails.js"></script>
+  <script src="js/hlsAccordion.js"></script>
+  <script src="js/hlsDownload.js"></script>
+  <script src="js/dashAccordion.js"></script>
+  <script src="js/dashDownload.js"></script>
+  <script src="js/dashMux.js"></script>
+  <script src="js/dlPanel.js"></script>
+  <script src="js/buildDlEntry.js"></script>
+  <script src="js/dlEntryStatus.js"></script>
+  <script src="js/liveBanner.js"></script>
+  <script src="js/downloadButton.js"></script>
+  <script src="js/messages.js"></script>
+  <script src="js/init.js"></script>
 </body>
 </html>

@@ -1,0 +1,85 @@
+/* popup/css/hls.css — MimicVault: HLS アコーディオン */
+
+/* ─── HLS アコーディオン ────────────────────────────────── */
+
+/* m3u8 アイテム — クリック可能を示す */
+.media-item--hls {
+  cursor: pointer;
+  position: relative;
+}
+
+/* 右端に展開インジケータ ▼ を追加 */
+.media-item--hls::after {
+  content: "▼";
+  font-size: 9px;
+  color: var(--text-sub);
+  opacity: .5;
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%) rotate(0deg);
+  transition: transform .15s;
+}
+
+.media-item--hls-open::after {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+/* ローディング中はアニメーション */
+.media-item--hls-loading::after {
+  content: "…";
+  animation: none;
+  opacity: .7;
+}
+
+/* バリアント一覧コンテナ */
+.hls-variants {
+  list-style: none;
+  background: var(--bg-hover);
+  border-bottom: 1px solid var(--border);
+  padding: 2px 0;
+}
+
+.hls-variants--error {
+  padding: 8px 16px;
+  font-size: 11px;
+  color: var(--text-sub);
+  font-style: italic;
+}
+
+/* 各バリアント行 */
+.hls-variant-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px 6px 28px;
+  border-bottom: 1px solid var(--border);
+  transition: background .1s;
+}
+
+.hls-variant-item:last-child { border-bottom: none; }
+.hls-variant-item:hover { background: var(--border); }
+
+/* 優先画質のハイライト（ステップ18） */
+.hls-variant-item--preferred {
+  background: var(--accent-lt);
+  border-left: 3px solid var(--accent);
+  padding-left: 25px; /* 左ボーダー分 28px - 3px */
+}
+.hls-variant-item--preferred:hover { background: var(--accent-lt); }
+
+/* 解像度（例: 1920x1080） */
+.variant-resolution {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 80px;
+}
+
+/* 帯域幅（例: 4.5 Mbps） */
+.variant-bandwidth {
+  font-size: 11px;
+  color: var(--text-sub);
+  flex: 1;
+}
+

@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# Media Snatcher companion app — macOS / Linux インストールスクリプト
+# MimicVault companion app — macOS / Linux インストールスクリプト
 #
 # 実行手順:
 #   cd companion/
-#   chmod +x install.sh media-snatcher
+#   chmod +x install.sh mimic-vault
 #   ./install.sh
 #
 # 実行内容:
 #   1. このスクリプトのディレクトリを companion のルートとして扱う
-#   2. media-snatcher ラッパーを実行可能に設定
+#   2. mimic-vault ラッパーを実行可能に設定
 #   3. Native Messaging ホストマニフェストを Firefox の所定位置に配置する
 #      - macOS: ~/Library/Application Support/Mozilla/NativeMessagingHosts/
 #      - Linux:  ~/.mozilla/native-messaging-hosts/
@@ -17,10 +17,10 @@ set -euo pipefail
 
 # ── companion のルートディレクトリ（このスクリプトの場所）────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-WRAPPER="$SCRIPT_DIR/media-snatcher"
+WRAPPER="$SCRIPT_DIR/mimic-vault"
 MANIFEST_TEMPLATE="$SCRIPT_DIR/native-manifest.json"
 
-echo "=== Media Snatcher companion app インストーラ ==="
+echo "=== MimicVault companion app インストーラ ==="
 echo "companion ディレクトリ: $SCRIPT_DIR"
 
 # ── Node.js の確認 ────────────────────────────────────────────────────────────
@@ -56,7 +56,7 @@ else
 fi
 
 mkdir -p "$NM_HOSTS_DIR"
-MANIFEST_DEST="$NM_HOSTS_DIR/media_snatcher.json"
+MANIFEST_DEST="$NM_HOSTS_DIR/mimic_vault.json"
 
 # ── テンプレートから実際のパスを埋め込んでマニフェストを生成 ─────────────────
 sed "s|__COMPANION_PATH__|$WRAPPER|g" "$MANIFEST_TEMPLATE" > "$MANIFEST_DEST"

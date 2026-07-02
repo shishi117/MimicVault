@@ -1,0 +1,47 @@
+/* options/css/base.css — MimicVault: リセット・CSS変数・body */
+
+/*
+ * options.css — 設定ページスタイル
+ * popup.css と同じカラーパレットを使用
+ */
+
+:root {
+  --accent:    #5f4dbc;
+  --accent-lt: #ede9fb;
+  --text:      #1a1a2e;
+  --text-sub:  #6b6b7e;
+  --border:    #e2e2ee;
+  --bg:        #f6f5fb;
+  --bg-card:   #ffffff;
+  --bg-hover:  #f7f5ff;
+  --danger:    #e05260;
+  --success:   #3aa872;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --accent:    #8b78f0;
+    --accent-lt: #2a2350;
+    --text:      #e8e8f4;
+    --text-sub:  #9898b0;
+    --border:    #2e2e44;
+    --bg:        #14141f;
+    --bg-card:   #1a1a2e;
+    --bg-hover:  #22223a;
+    --danger:    #e86875;
+    --success:   #52c08d;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+}
+

@@ -1,0 +1,29 @@
+/* popup/css/footer.css — MimicVault: フッター */
+
+/* ─── フッター ─────────────────────────────────────────── */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 14px;
+  border-top: 1px solid var(--border);
+}
+
+#count-label { color: var(--text-sub); font-size: 11px; }
+
+.clear-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 10px;
+  font-size: 11px;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: border-color .12s, color .12s;
+}
+
+.clear-btn:hover { border-color: #e05050; color: #c0392b; }
+
+/* ユーティリティ */
+.hidden { display: none !important; }
+
