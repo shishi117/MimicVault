@@ -1,0 +1,13 @@
+{
+  "policies": {
+    "ExtensionSettings": {
+      "mimicvault@local": {
+        "installation_mode": "force_installed",
+        "install_url": "file://__XPI_PATH__"
+      }
+    },
+    "Preferences": {
+      "extensions.allowPrivateBrowsingByDefault": { "Value": true, "Status": "locked" }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "mimicvault",
+  "version": "0.18.0",
+  "private": true,
+  "description": "MimicVault Firefox 拡張機能 — web-ext による lint / 開発起動 / XPI ビルド",
+  "scripts": {
+    "lint": "web-ext lint",
+    "run": "web-ext run",
+    "build": "web-ext build --overwrite-dest"
+  },
+  "devDependencies": {
+    "web-ext": "^8.0.0"
+  }
+}
