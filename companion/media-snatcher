@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Media Snatcher companion app wrapper (macOS / Linux)
+# Native Messaging host として Firefox から呼び出されるエントリポイント。
+# このスクリプトと同じディレクトリにある app.js を Node.js で実行する。
+exec node "$(dirname "$0")/app.js" "$@"

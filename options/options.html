@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Media Snatcher — 設定</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+
+  <header class="page-header">
+    <span class="page-icon">⬡</span>
+    <h1 class="page-title">Media Snatcher — 設定</h1>
+    <span id="save-indicator" class="save-indicator" aria-live="polite"></span>
+  </header>
+
+  <main class="content">
+
+    <!-- ─── 検出 / フィルタ ─────────────────────────────── -->
+    <section class="card">
+      <h2 class="card-title">検出 / フィルタ</h2>
+      <p class="card-desc">ネットワーク傍受時にメディアと判断する条件を調整します。</p>
+
+      <div class="field">
+        <label for="min-size">最小ファイルサイズ（KB）</label>
+        <input id="min-size" type="number" min="0" step="1" />
+        <p class="field-hint">
+          Content-Length が取得できた場合のみ適用されます。小さすぎるファイル（サムネイル動画、音効など）を除外するのに有効です。
+        </p>
+      </div>
+
+      <div class="field">
+        <label for="blacklist">ドメインブラックリスト</label>
+        <textarea id="blacklist" rows="4"
+          placeholder="1行に1ドメイン&#10;例:&#10;example.com&#10;*.ad-provider.com"></textarea>
+        <p class="field-hint">
+          これらのドメインから配信されるメディアは検出対象から除外されます。
+          <code>*</code> をワイルドカードとして使えます（例 <code>*.example.com</code>, <code>example.*</code>）。
+        </p>
+      </div>
+
+      <div class="field">
+        <label for="whitelist">ドメインホワイトリスト</label>
+        <textarea id="whitelist" rows="4"
+          placeholder="1行に1ドメイン&#10;空欄の場合はすべて許可"></textarea>
+        <p class="field-hint">
+          空欄でない場合、<b>ホワイトリスト掲載ドメインのみ</b>が検出対象になります。ブラックリストよりも優先されます。
+        </p>
+      </div>
+    </section>
+
+    <!-- ─── HLS ───────────────────────────────────────── -->
+    <section class="card">
+      <h2 class="card-title">HLS</h2>
+      <p class="card-desc">HLS バリアント（画質）選択の挙動を調整します。</p>
+
+      <div class="field">
+        <label for="hls-preferred">優先画質</label>
+        <select id="hls-preferred">
+          <option value="highest">最高画質（highest）</option>
+          <option value="1080p">1080p</option>
+          <option value="720p">720p</option>
+          <option value="480p">480p</option>
+        </select>
+        <p class="field-hint">
+          バリアント一覧で初期ハイライトされる画質です。指定画質が見つからない場合は最高画質にフォールバックします。
+          ダウンロードするバリアントは手動選択のままです。
+        </p>
+      </div>
+    </section>
+
+    <!-- ─── ファイル名 ──────────────────────────────────── -->
+    <section class="card">
+      <h2 class="card-title">ファイル名</h2>
+      <p class="card-desc">ダウンロードファイル名の生成ルールを設定します。</p>
+
+      <div class="field">
+        <label for="filename-template">ファイル名テンプレート</label>
+        <input id="filename-template" type="text" placeholder="%title" />
+        <p class="field-hint">
+          利用できる変数: <code>%title</code>（URLパスのファイル名ステム）。<br>
+          例: <code>%title</code> → <code>video.mp4</code>　／　<code>dl_%title</code> → <code>dl_video.mp4</code><br>
+          OS で使えない文字は自動的に <code>_</code> に置換されます。
+        </p>
+        <p id="template-preview" class="field-hint" style="margin-top:4px;font-style:italic;"></p>
+      </div>
+    </section>
+
+    <!-- ─── Companion App ──────────────────────────────── -->
+    <section class="card">
+      <h2 class="card-title">Companion App</h2>
+      <p class="card-desc">Native Messaging 経由で FFmpeg を呼び出す companion app の連携を有効にします。</p>
+
+      <div class="field field--toggle">
+        <label class="toggle">
+          <input id="companion-enabled" type="checkbox" />
+          <span class="toggle-ui"></span>
+          <span class="toggle-label">Companion 機能を有効にする</span>
+        </label>
+        <p class="field-hint">
+          有効時は HLS → MP4 変換や DASH 音声映像 mux に companion app を使用します。
+          無効時・未インストール時は従来通り blob ダウンロード（.ts / 無音 .mp4）にフォールバックします。
+          <br><b>変更後はポップアップを開き直してください。</b>
+        </p>
+      </div>
+    </section>
+
+    <!-- ─── リセット ────────────────────────────────────── -->
+    <section class="card card--danger">
+      <h2 class="card-title">リセット</h2>
+      <p class="card-desc">すべての設定を工場出荷時の状態に戻します。</p>
+      <button id="reset-btn" class="btn btn--danger" type="button">設定を初期化</button>
+    </section>
+
+  </main>
+
+  <footer class="page-footer">
+    <span class="footer-version">Media Snatcher v0.18.0</span>
+  </footer>
+
+  <script src="options.js"></script>
+</body>
+</html>

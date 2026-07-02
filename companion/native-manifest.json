@@ -1,0 +1,9 @@
+{
+  "name": "media_snatcher",
+  "description": "Media Snatcher companion app — FFmpeg integration",
+  "path": "__COMPANION_PATH__",
+  "type": "stdio",
+  "allowed_extensions": [
+    "media-snatcher@local"
+  ]
+}
