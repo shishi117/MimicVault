@@ -155,8 +155,16 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
             skipped.push({ url: item.url, reason: "companion未接続" });
           }
         } else if (isDash(item)) {
-          // DASH は映像/音声トラック選択が必要なため全DL対象外（個別に変換）
-          skipped.push({ url: item.url, reason: "DASH（個別に変換）" });
+          // 全DL: companion 接続時のみ MPD 解析→既定トラック自動選択→mux
+          // （未接続では mux 不可のためスキップ。HLS と同じ挙動）
+          // 既知の簡略化: 複数 DASH があると FFmpeg が同時起動する（通常1本なので許容）。
+          if (companionPort) {
+            autoDashMux(item)
+              .catch(err => console.warn("[全DL] DASH mux失敗:", item.url, err.message));
+            converting++;
+          } else {
+            skipped.push({ url: item.url, reason: "companion未接続" });
+          }
         } else if (isTs(item) && hasHls) {
           // m3u8 がある = この .ts はそのストリームのセグメント。HLS 変換でまとめて
           // 取得されるので個別DLしない（一覧でも隠している）。
