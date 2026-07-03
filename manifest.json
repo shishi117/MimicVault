@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "MimicVault",
-  "version": "0.18.0",
+  "version": "0.19.0",
   "description": "ページ内の動画URLを検出してダウンロードする",
 
   "browser_specific_settings": {
@@ -56,12 +56,14 @@
   "background": {
     "scripts": [
       "background/constants.js",
+      "background/ismToDashUrl.js",
       "background/settings.js",
       "background/domainFilter.js",
       "background/filename.js",
       "background/mediaStore.js",
       "background/mediaHelpers.js",
       "background/urlHelpers.js",
+      "background/segmentGroups.js",
       "background/webRequest.js",
       "background/hlsMasterParse.js",
       "background/hlsMediaParse.js",
@@ -77,6 +79,7 @@
       "background/autoDashMux.js",
       "background/companion.js",
       "background/companionHls.js",
+      "background/downloadSegmentGroup.js",
       "background/mediaMeta.js",
       "background/messageRouter.js",
       "background/tabs.js"

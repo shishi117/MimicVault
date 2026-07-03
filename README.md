@@ -1,7 +1,34 @@
 # MimicVault
 
-ページ内の動画URL（HLS / DASH / 通常ファイル）を検出してダウンロードする Firefox 拡張機能。
-HLS→MP4 変換などは Native Messaging 経由の companion アプリが担当します（`companion/README.md` 参照）。
+ブラウザの通信からメディアを検出してダウンロードする Firefox 拡張機能。
+HLS→MP4 変換や mux などは Native Messaging 経由の companion アプリが担当します（`companion/README.md` 参照）。
+
+## 対応規格
+
+| 規格 | 検出 | ダウンロード | 備考 |
+|------|------|--------------|------|
+| 通常ファイル (mp4/webm/mkv…) | ✅ | ブラウザ直DL | — |
+| **HLS** (.m3u8) | ✅ | companion で MP4 変換 / 未接続時は結合 .ts。ライブは分割録画 | AES-128 復号対応、SAMPLE-AES 非対応 |
+| **DASH** (.mpd) | ✅ | トラック選択 + companion で mux（映像+音声→MP4） | — |
+| **MSS** (Smooth Streaming, .ism/Manifest) | ✅ | `.ism` を DASH(MPD) URL に解決して DASH 経路へ委譲 | 下記の制限あり |
+| **収集ストリーム**（マニフェスト非露出の MSE） | ✅ | 収集した fMP4 断片を結合し companion で remux / 未接続時は断片化MP4 | 下記の制限あり |
+
+対象は HTTP(S) で流れるメディアのみです。WebRTC / RTMP / RTSP は HTTP ではないため検出できません。
+
+### MSS（Smooth Streaming）の制限
+動的パッケージャー（同じ `.ism` から DASH も配信する Unified Streaming / Azure / IIS / Wowza 等）に対応します。
+`.ism/Manifest` を検出すると既知の DASH 記法（`.ism/.mpd`、`manifest(format=mpd-time-csf)`、`manifest.mpd`）を
+順に試し、MPD を返す URL を使って既存の DASH 処理に委譲します。**静的 Smooth（断片のみで DASH 再パッケージ
+非対応）は未対応**で、この場合は DASH 解析失敗として表示されます。
+
+### 収集ストリーム（汎用 MSE）の制限
+`.mpd`/`.m3u8` を露出しないプレイヤーが取得する fMP4 断片（`.m4s`/`.cmf*` + `init`）を、ディレクトリ単位で
+1つのストリームに束ねて結合ダウンロードします。以下の制限があります。
+- ユーザーが**再生し切った範囲**の断片しか集まりません（ライブ録画と同じ本質的制約）。
+- 断片は元 URL を再取得するため、署名付き一時 URL は失効しうる。
+- 1ディレクトリに複数レンディション/トラックが混在するレイアウトは v1 では分離しません
+  （大半のパッケージャはレンディション別ディレクトリなので通常は正しく動作）。
+- TS 断片・連番 .mp4・Smooth Fragments（init 不在）は対象外。
 
 ## 拡張機能のインストール
 

@@ -13,6 +13,13 @@ function getStore(tabId) {
 }
 
 function addToStore(tabId, item) {
+  // MSS(.ism/Manifest) は dash+xml として扱い、既存 DASH 経路へ吸収する。
+  // 実際の DASH URL 解決は fetchDashInfo が候補を試して行う（viaMss はラベル用）。
+  if (isMssUrl(item.url, item.mimeHint)) {
+    item.mimeHint = "application/dash+xml";
+    item.viaMss   = true;
+  }
+
   const store = getStore(tabId);
   if (store.has(item.url)) return false;
   store.set(item.url, item);

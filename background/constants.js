@@ -8,8 +8,8 @@
 /** メディアと判断する Content-Type */
 const MEDIA_MIME_RE = /^(video|audio)\//i;
 
-/** HLS / DASH マニフェスト系の Content-Type */
-const MANIFEST_MIME_RE = /^application\/(x-mpegurl|vnd\.apple\.mpegurl|dash\+xml)/i;
+/** HLS / DASH / MSS マニフェスト系の Content-Type */
+const MANIFEST_MIME_RE = /^application\/(x-mpegurl|vnd\.apple\.mpegurl|dash\+xml|vnd\.ms-sstr\+xml)/i;
 
 /** URL 拡張子ベースの判定（MIME が不正確なサーバー対策） */
 const MEDIA_URL_RE = /\.(mp4|webm|mkv|mov|m4v|ogg|ogv|ts|m2ts|m3u8|mpd|m4s|m4a|mp3|aac|flac|opus|wav)(\?|#|$)/i;

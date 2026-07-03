@@ -25,6 +25,10 @@ function isDashUrl(url) {
  * DASH の "DASH/mux"（映像+音声あり）判定はメタ取得後に mediaMetaStore が上書きする。
  */
 function mediaMethodLabel(item) {
+  // 収集ストリーム（孤立セグメントグループ）
+  if (item.isSegmentGroup) return "収集";
+  // MSS は addToStore で DASH URL に正規化済み。ラベルだけ由来を明示する。
+  if (item.viaMss) return "MSS→DASH";
   const isDash = isDashUrl(item.url) ||
     (item.mimeHint ?? "").includes("dash+xml") || (item.mimeHint ?? "").includes("mpd");
   if (isDash) return "DASH";

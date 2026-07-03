@@ -51,9 +51,11 @@ function buildItem(item) {
   // 方式（DASH/mux は先読み後に上書きされる）
   meta.appendChild(makeChip(metaInfo?.method ?? mediaMethodLabel(item)));
 
-  // 動画の長さ（ストリームはメタ未取得なら "…"、直接ファイルは長さ不明なので出さない）
+  // 収集ストリームは長さ不明なので断片数を出す。それ以外は長さ（未取得なら "…"）。
   const isStream = mediaMethodLabel(item) !== "直接";
-  if (metaInfo?.durationSec) {
+  if (item.isSegmentGroup) {
+    meta.appendChild(makeChip(`${item.segmentCount ?? 0}断片`));
+  } else if (metaInfo?.durationSec) {
     meta.appendChild(makeChip(formatDuration(metaInfo.durationSec)));
   } else if (isStream) {
     meta.appendChild(makeChip("…"));

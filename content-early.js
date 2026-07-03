@@ -42,6 +42,9 @@ const _MS_EXCLUDE_MIME_RE  =
  * @returns {boolean}
  */
 function _msIsMedia(url, mime) {
+  // MSS(.ism/Manifest) は text/xml で来ることがあるため EXCLUDE より先に許可する
+  if (url && /\.isml?\/manifest(\(|\?|#|$)/i.test(url)) return true;
+  if (mime && /vnd\.ms-sstr\+xml/i.test(mime)) return true;
   if (mime && _MS_EXCLUDE_MIME_RE.test(mime)) return false;
   if (mime && (_MS_MEDIA_MIME_RE.test(mime) || _MS_MANIFEST_MIME_RE.test(mime))) return true;
   if (url  && _MS_MEDIA_URL_RE.test(url))   return true;
