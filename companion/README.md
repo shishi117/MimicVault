@@ -1,6 +1,7 @@
 # MimicVault — Companion App
 
-FFmpeg を使って HLS → MP4 変換（および DASH mux）を行うための Native Messaging companion app です。
+FFmpeg を使って HLS → MP4 変換、DASH mux、収集ストリームの remux を行うための Native Messaging companion app です。
+（対応コマンド: `ping` / `version` / `convert`=HLS→MP4 / `mux`=映像+音声→MP4 / `remux`=結合済み断片→MP4）
 
 > **旧 Media Snatcher からの移行**: Native Messaging ホスト名が `media_snatcher` → `mimic_vault` に変わりました。
 > 以前 companion をインストールしている場合は、古いホスト登録を削除（下記「アンインストール」参照）してから

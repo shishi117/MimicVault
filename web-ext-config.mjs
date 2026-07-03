@@ -7,6 +7,7 @@ export default {
 
   // XPI に含めないもの。特に companion/（mimic-vault.exe が約98MB）を必ず除外する。
   ignoreFiles: [
+    '**/*.test.js',
     'companion/**',
     'deploy/**',
     'web-ext-artifacts/**',

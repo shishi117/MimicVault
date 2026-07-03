@@ -9,6 +9,13 @@ function buildDownloadButton(item) {
   btn.dataset.url = item.url;
   btn.title = "ダウンロード";
 
+  // 収集ストリーム（孤立セグメントグループ）は専用の結合DLに回す
+  if (item.isSegmentGroup) {
+    applyDownloadButtonState(btn, downloadStates.get(item.url));
+    btn.addEventListener("click", () => startSegmentGroupDownload(item, btn));
+    return btn;
+  }
+
   // m3u8 は既定DLでも変換経路に回す（companion 接続時は1本のMP4、未接続時は
   // 結合した .ts）。生の .m3u8 テキストを保存しても使えないため。
   const isHls = isHlsUrl(item.url) || (item.mimeHint || "").includes("mpegurl");

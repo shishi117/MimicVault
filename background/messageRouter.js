@@ -29,6 +29,8 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (url.startsWith("blob:") || url.startsWith("data:")) break;
       // ステップ18: ドメインブラック/ホワイトリストで除外
       if (isDomainFiltered(url)) break;
+      // 汎用 MSE 断片はグループ収集に回す（MSE は主に fetch/XHR 経由で届く）
+      if (isSegmentUrl(url)) { recordSegment(tabId, url, pageURL ?? ""); break; }
       addToStore(tabId, {
         url,
         source:        "blob",
@@ -111,6 +113,14 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     }
 
+    // 収集ストリーム（孤立セグメントグループ）のダウンロード要求
+    case "DOWNLOAD_SEGMENT_GROUP": {
+      downloadSegmentGroup(message)
+        .then(result => sendResponse(result))
+        .catch(err   => sendResponse({ ok: false, error: err.message }));
+      return true;
+    }
+
     // m3u8 アイテムをクリックしたときのバリアント取得リクエスト
     case "FETCH_HLS_VARIANTS": {
       const { url, pageURL } = message;
@@ -174,6 +184,12 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
           } else {
             skipped.push({ url: item.url, reason: "companion未接続" });
           }
+        } else if (item.isSegmentGroup) {
+          // 収集ストリーム: 断片を結合して保存（companion 有無に関わらず動作）。
+          // 長時間かかるため await しない。
+          downloadSegmentGroup({ groupKey: item.groupKey, tabId: allTabId })
+            .catch(err => console.warn("[全DL] 収集ストリーム失敗:", item.url, err.message));
+          converting++;
         } else if (isTs(item) && hasHls) {
           // m3u8 がある = この .ts はそのストリームのセグメント。HLS 変換でまとめて
           // 取得されるので個別DLしない（一覧でも隠している）。

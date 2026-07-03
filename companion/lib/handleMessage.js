@@ -6,6 +6,7 @@ const { sendMessage } = require("./io");
 const { getFfmpegVersion } = require("./ffmpeg");
 const handleConvert = require("./handleConvert");
 const handleMux = require("./handleMux");
+const handleRemux = require("./handleRemux");
 
 // ─── コマンドディスパッチャ ───────────────────────────────────────────────────
 
@@ -39,6 +40,11 @@ async function handleMessage(msg) {
     // ── mux: DASH 映像+音声 → MP4 結合（v0.18.0）──────────────────────────
     case "mux":
       await handleMux(msg);
+      break;
+
+    // ── remux: 収集ストリーム(単一入力) → MP4（v0.19.0）───────────────────
+    case "remux":
+      await handleRemux(msg);
       break;
 
     default:

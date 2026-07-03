@@ -81,7 +81,7 @@ async function init() {
  * 既知の簡略化: 全件 settle 後に一括再描画（通常ページ内のストリームは1本程度）。
  */
 async function loadMediaMeta() {
-  const streams = allItems.filter(it => mediaMethodLabel(it) !== "直接");
+  const streams = allItems.filter(it => !it.isSegmentGroup && mediaMethodLabel(it) !== "直接");
   if (streams.length === 0) return;
 
   await Promise.allSettled(streams.map(async (item) => {

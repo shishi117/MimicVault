@@ -67,11 +67,20 @@ function handleNetworkResponse(details) {
   // ステップ18: ドメインブラック/ホワイトリストで除外
   if (isDomainFiltered(url)) return;
 
+  // 汎用 MSE 断片(.m4s/.cmf*/init)はグループ収集に回し、個別 item にはしない
+  if (isSegmentUrl(url)) {
+    recordSegment(tabId, url, details.documentUrl ?? "");
+    return;
+  }
+
   const contentType   = getHeader(responseHeaders, "content-type") ?? "";
   const contentLength = Number(getHeader(responseHeaders, "content-length") ?? -1);
 
-  // 除外: 明らかに非メディアな MIME
-  if (EXCLUDE_MIME_RE.test(contentType)) return;
+  // MSS(.ism/Manifest) は text/xml で来ることがあるため EXCLUDE より先に判定する
+  const isMss = isMssUrl(url, contentType);
+
+  // 除外: 明らかに非メディアな MIME（MSS は除外しない）
+  if (!isMss && EXCLUDE_MIME_RE.test(contentType)) return;
 
   // 除外: サイズが取れていて最小値未満
   // ステップ18: 設定の minSizeKB を優先（0 の場合は無制限 = 下限なし）
@@ -84,12 +93,15 @@ function handleNetworkResponse(details) {
   const isMimeManifest = MANIFEST_MIME_RE.test(contentType);
   const isUrlMedia     = MEDIA_URL_RE.test(url);
 
-  if (!isMimeMedia && !isMimeManifest && !isUrlMedia) return;
+  if (!isMimeMedia && !isMimeManifest && !isUrlMedia && !isMss) return;
 
   // "video/mp4; codecs=avc1.64001f" → "video/mp4" に正規化
-  const mimeHint = (isMimeMedia || isMimeManifest)
-    ? contentType.split(";")[0].trim()
-    : inferMimeFromUrl(url);
+  // MSS は addToStore で DASH 形式へ正規化されるため dash+xml 扱いにしておく
+  const mimeHint = isMss
+    ? "application/dash+xml"
+    : (isMimeMedia || isMimeManifest)
+      ? contentType.split(";")[0].trim()
+      : inferMimeFromUrl(url);
 
   addToStore(tabId, {
     url,
