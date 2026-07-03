@@ -6,7 +6,11 @@
 async function loadUserSettings() {
   try {
     const stored = await browser.storage.local.get("ms_settings");
-    userSettings = { hlsPreferred: "highest", filenameTemplate: "%title", ...(stored.ms_settings ?? {}) };
+    userSettings = {
+      hlsPreferred: "highest", filenameTemplate: "%title",
+      popupMinDurationSec: 10, popupMinSizeKB: 50,
+      ...(stored.ms_settings ?? {}),
+    };
   } catch (_) { /* デフォルトのまま */ }
 }
 

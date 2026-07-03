@@ -19,6 +19,18 @@ function renderList() {
     items = items.filter(it => !isTsSegment(it));
   }
 
+  // 3.5: 短尺・極小の断片を隠す。長さが分かれば再生時間で、長さ不明なら
+  // サイズ（結合後推定 or Content-Length）で判定する。基準値は設定で変更可（0 で無効）。
+  // サイズも不明なら判定不能なので表示する。
+  const minDur   = userSettings.popupMinDurationSec;
+  const minSizeB = userSettings.popupMinSizeKB * 1024;
+  items = items.filter(it => {
+    const meta = mediaMetaStore.get(it.url);
+    if (meta?.durationSec != null) return meta.durationSec >= minDur;
+    const size = meta?.sizeBytes ?? it.contentLength;
+    return size == null || size >= minSizeB;
+  });
+
   // ソート
   const sortKey = elSort?.value ?? "time";  items = [...items].sort((a, b) => {
     if (sortKey === "size") {

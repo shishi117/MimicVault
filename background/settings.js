@@ -15,12 +15,14 @@
 const SETTINGS_STORAGE_KEY = "ms_settings";
 
 const SETTINGS_DEFAULTS = Object.freeze({
-  minSizeKB:        1,
-  blacklist:        [],
-  whitelist:        [],
-  hlsPreferred:     "highest",
-  filenameTemplate: "%title",
-  companionEnabled: true,
+  minSizeKB:           1,
+  blacklist:           [],
+  whitelist:           [],
+  hlsPreferred:        "highest",
+  filenameTemplate:    "%title",
+  companionEnabled:    true,
+  popupMinDurationSec: 10,   // ポップアップ表示フィルタ（popup 側で使用）
+  popupMinSizeKB:      50,
 });
 
 /** メモリ上のキャッシュ。初期化完了までデフォルトを返す */

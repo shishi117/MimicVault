@@ -6,7 +6,8 @@
 // ─── イベント登録 ─────────────────────────────────────────────────────────────
 
 function bindEvents() {
-  [elMinSize, elBlacklist, elWhitelist].forEach(el => el.addEventListener("input", scheduleSave));
+  [elMinSize, elBlacklist, elWhitelist, elPopupMinDuration, elPopupMinSize]
+    .forEach(el => el.addEventListener("input", scheduleSave));
   elHlsPref.addEventListener("change", scheduleSave);
   elCompanion.addEventListener("change", scheduleSave);
 

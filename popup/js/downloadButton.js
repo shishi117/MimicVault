@@ -18,7 +18,26 @@ function buildDownloadButton(item) {
     btn.addEventListener("click", () => startHlsSegmentDownload(item, item.url, btn));
   } else {
     applyDownloadButtonState(btn, downloadStates.get(item.url));
-    btn.addEventListener("click", () => startDownload(item, btn));
+    // 直接DL（HLS/DASH でない生ファイル）はブラウザのDL機能を使うため履歴に残り
+    // “見せかけ”できない。誤操作で痕跡を残さないよう2段階クリックで確認させる。
+    const isDirect = mediaMethodLabel(item) === "直接";
+    btn.addEventListener("click", () => {
+      if (isDirect && !btn.dataset.confirm) {
+        // 1回目: 警告して確認待ちにする
+        btn.dataset.confirm = "1";
+        btn.textContent = "⚠ 直接DL?";
+        showToast("直接DLはブラウザのDL機能を使用し履歴に残ります。通常アクセスに見せかけできません。もう一度押すと実行します");
+        clearTimeout(btn._confirmTimer);
+        btn._confirmTimer = setTimeout(() => {
+          delete btn.dataset.confirm;
+          applyDownloadButtonState(btn, downloadStates.get(item.url));
+        }, 4000);
+        return;
+      }
+      clearTimeout(btn._confirmTimer);
+      delete btn.dataset.confirm;
+      startDownload(item, btn);
+    });
   }
 
   return btn;

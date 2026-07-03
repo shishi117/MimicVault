@@ -28,6 +28,8 @@ function applyToUI(s) {
     : (typeof s.filenamePrefix === "string" && s.filenamePrefix ? s.filenamePrefix + "%title" : DEFAULTS.filenameTemplate);
   elTemplate.value    = tmpl;
   elCompanion.checked = s.companionEnabled !== false;
+  elPopupMinDuration.value = Number.isFinite(s.popupMinDurationSec) ? s.popupMinDurationSec : DEFAULTS.popupMinDurationSec;
+  elPopupMinSize.value     = Number.isFinite(s.popupMinSizeKB)      ? s.popupMinSizeKB      : DEFAULTS.popupMinSizeKB;
   updatePreview();
 }
 
@@ -35,13 +37,17 @@ function applyToUI(s) {
 
 function collectFromUI() {
   const parsedMin = parseInt(elMinSize.value, 10);
+  const parsedDur = parseInt(elPopupMinDuration.value, 10);
+  const parsedSz  = parseInt(elPopupMinSize.value, 10);
   return {
-    minSizeKB:        Number.isFinite(parsedMin) && parsedMin >= 0 ? parsedMin : DEFAULTS.minSizeKB,
-    blacklist:        linesToArray(elBlacklist.value),
-    whitelist:        linesToArray(elWhitelist.value),
-    hlsPreferred:     elHlsPref.value,
-    filenameTemplate: elTemplate.value || DEFAULTS.filenameTemplate,
-    companionEnabled: elCompanion.checked,
+    minSizeKB:           Number.isFinite(parsedMin) && parsedMin >= 0 ? parsedMin : DEFAULTS.minSizeKB,
+    blacklist:           linesToArray(elBlacklist.value),
+    whitelist:           linesToArray(elWhitelist.value),
+    hlsPreferred:        elHlsPref.value,
+    filenameTemplate:    elTemplate.value || DEFAULTS.filenameTemplate,
+    companionEnabled:    elCompanion.checked,
+    popupMinDurationSec: Number.isFinite(parsedDur) && parsedDur >= 0 ? parsedDur : DEFAULTS.popupMinDurationSec,
+    popupMinSizeKB:      Number.isFinite(parsedSz)  && parsedSz  >= 0 ? parsedSz  : DEFAULTS.popupMinSizeKB,
   };
 }
 

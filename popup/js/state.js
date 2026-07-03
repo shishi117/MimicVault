@@ -24,7 +24,7 @@ let activeFilter = "all";  // "all" | "video" | "audio"
 let currentTabId = null;   // サムネイルリクエストで使うタブ ID
 
 // ステップ18: 設定キャッシュ（hlsPreferred を HLS アコーディオン表示に反映するのに使用）
-let userSettings = { hlsPreferred: "highest", filenameTemplate: "%title" };
+let userSettings = { hlsPreferred: "highest", filenameTemplate: "%title", popupMinDurationSec: 10, popupMinSizeKB: 50 };
 
 /**
  * ポップアップ表示用メタ情報の先読みキャッシュ（v0.19.0）。

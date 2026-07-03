@@ -56,6 +56,28 @@
       </div>
     </section>
 
+    <!-- ─── ポップアップ表示フィルタ ─────────────────────── -->
+    <section class="card">
+      <h2 class="card-title">ポップアップ表示</h2>
+      <p class="card-desc">ポップアップ一覧から短尺・極小の断片（広告バンパー・プレビュー等）を隠す条件です。</p>
+
+      <div class="field">
+        <label for="popup-min-duration">最小再生時間（秒）</label>
+        <input id="popup-min-duration" type="number" min="0" step="1" />
+        <p class="field-hint">
+          再生時間がこの秒数未満のストリーム（HLS/DASH）を一覧から隠します。<code>0</code> で無効。
+        </p>
+      </div>
+
+      <div class="field">
+        <label for="popup-min-size">最小ファイルサイズ（KB）</label>
+        <input id="popup-min-size" type="number" min="0" step="1" />
+        <p class="field-hint">
+          再生時間が不明なファイル（直接ダウンロードの mp4 等）は、代わりにサイズがこの KB 未満なら隠します。<code>0</code> で無効。
+        </p>
+      </div>
+    </section>
+
     <!-- ─── HLS ───────────────────────────────────────── -->
     <section class="card">
       <h2 class="card-title">HLS</h2>
