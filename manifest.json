@@ -19,6 +19,7 @@
     "webRequestBlocking",
     "downloads",
     "nativeMessaging",
+    "bookmarks",
     "<all_urls>"
   ],
 
@@ -81,6 +82,7 @@
       "background/companionHls.js",
       "background/downloadSegmentGroup.js",
       "background/mediaMeta.js",
+      "background/bookmarkDownload.js",
       "background/messageRouter.js",
       "background/tabs.js"
     ],

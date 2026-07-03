@@ -69,6 +69,12 @@ async function init() {
     elDlAllBtn.addEventListener("click", () => startDownloadAll());
   }
 
+  // ブックマーク一括DLパネルの開閉
+  if (elBookmarkBtn) {
+    elBookmarkBtn.addEventListener("click", () => toggleBookmarkPanel());
+  }
+  initBookmarkPanel();
+
   renderList();
   requestThumbnails(currentTabId);
   loadMediaMeta();  // DASH/HLS の方式・長さ・結合後サイズを先読みして再描画

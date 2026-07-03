@@ -17,6 +17,14 @@ const filterTabs = document.querySelectorAll(".filter-tab");
 const elCompanionIndicator = document.getElementById("companion-indicator");
 const elSettingsBtn        = document.getElementById("settings-btn");
 const elDlAllBtn           = document.getElementById("dl-all-btn");
+// ブックマーク一括DLパネル
+const elBookmarkBtn        = document.getElementById("bookmark-btn");
+const elBookmarkPanel      = document.getElementById("bookmark-panel");
+const elBookmarkFolder     = document.getElementById("bookmark-folder");
+const elBookmarkSelAll     = document.getElementById("bookmark-selall");
+const elBookmarkDlBtn      = document.getElementById("bookmark-dl-btn");
+const elBookmarkList       = document.getElementById("bookmark-list");
+const elBookmarkEmpty      = document.getElementById("bookmark-empty");
 
 // ─── 状態 ─────────────────────────────────────────────────────────────────────
 let allItems     = [];     // background から取得した全アイテム
