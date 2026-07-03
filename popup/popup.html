@@ -15,7 +15,6 @@
   <link rel="stylesheet" href="css/live.css">
   <link rel="stylesheet" href="css/dash.css">
   <link rel="stylesheet" href="css/chip.css">
-  <link rel="stylesheet" href="css/dlPanel.css">
   <link rel="stylesheet" href="css/companion.css">
   <link rel="stylesheet" href="css/controls.css">
 </head>
@@ -52,7 +51,6 @@
       <button class="filter-tab active" data-filter="all"   role="tab">すべて</button>
       <button class="filter-tab"        data-filter="video" role="tab">動画</button>
       <button class="filter-tab"        data-filter="audio" role="tab">音声</button>
-      <button class="filter-tab"        data-filter="dl"    role="tab">DL</button>
     </div>
     <select id="sort-select" class="sort-select" aria-label="並び順">
       <option value="time">新しい順</option>
@@ -73,9 +71,6 @@
     <div class="state-icon">◯</div>
     <p>該当するメディアがありません</p>
   </div>
-
-  <!-- DL パネル（DL タブ選択時に表示） -->
-  <div id="dl-panel" class="dl-panel hidden"></div>
 
   <!-- 検出済みリスト -->
   <ul id="media-list" class="media-list hidden"></ul>
@@ -99,9 +94,6 @@
   <script src="js/dashAccordion.js"></script>
   <script src="js/dashDownload.js"></script>
   <script src="js/dashMux.js"></script>
-  <script src="js/dlPanel.js"></script>
-  <script src="js/buildDlEntry.js"></script>
-  <script src="js/dlEntryStatus.js"></script>
   <script src="js/liveBanner.js"></script>
   <script src="js/downloadButton.js"></script>
   <script src="js/messages.js"></script>

@@ -84,11 +84,16 @@ function parseMediaPlaylist(text, baseURL) {
     // METHOD=NONE または未知の METHOD はキーなしとして扱う
   }
 
-  // ── セグメント URI の抽出 ────────────────────────────────────────────────────
+  // ── セグメント URI の抽出 ＋ 総再生時間の集計 ────────────────────────────────
   const segments = [];
+  let totalDuration = 0;   // #EXTINF 値の合計（秒）= VOD の総尺
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line.startsWith("#EXTINF:")) continue;
+
+    // #EXTINF:<秒>,<任意タイトル> の秒数を合計
+    const dur = parseFloat(line.slice("#EXTINF:".length));
+    if (!isNaN(dur)) totalDuration += dur;
 
     for (let j = i + 1; j < lines.length; j++) {
       const candidate = lines[j].trim();
@@ -98,6 +103,6 @@ function parseMediaPlaylist(text, baseURL) {
     }
   }
 
-  return { keyInfo, mediaSequence, segments, ended, targetDuration };
+  return { keyInfo, mediaSequence, segments, ended, targetDuration, totalDuration };
 }
 

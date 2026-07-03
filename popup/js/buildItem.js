@@ -36,62 +36,45 @@ function buildItem(item) {
   const info = document.createElement("div");
   info.className = "media-info";
 
-  // ファイル名（URL の末尾部分）
-  const filename = extractFilename(item.url);
-  const filenameEl = document.createElement("div");
-  filenameEl.className = "media-filename";
-  filenameEl.textContent = filename;
-  filenameEl.title = item.url;
-
-  // ドメイン
+  // ドメイン（URL・ファイル名は非表示。ドメインが行の識別子）
   const domain = extractDomain(item.url);
   const domainEl = document.createElement("div");
   domainEl.className = "media-domain";
   domainEl.textContent = domain;
 
-  // メタチップ行
+  // メタチップ行: 方式・長さ・サイズ
   const meta = document.createElement("div");
   meta.className = "media-meta";
 
-  // MIME
-  if (item.mimeHint) meta.appendChild(makeChip(item.mimeHint));
+  const metaInfo = mediaMetaStore.get(item.url);  // 先読み取得済みなら { method, durationSec, sizeBytes }
 
-  // 拡張子
-  const ext = extractExt(item.url);
-  if (ext) meta.appendChild(makeChip(ext.toUpperCase()));
+  // 方式（DASH/mux は先読み後に上書きされる）
+  meta.appendChild(makeChip(metaInfo?.method ?? mediaMethodLabel(item)));
 
-  // ファイルサイズ
-  if (item.contentLength != null) {
+  // 動画の長さ（ストリームはメタ未取得なら "…"、直接ファイルは長さ不明なので出さない）
+  const isStream = mediaMethodLabel(item) !== "直接";
+  if (metaInfo?.durationSec) {
+    meta.appendChild(makeChip(formatDuration(metaInfo.durationSec)));
+  } else if (isStream) {
+    meta.appendChild(makeChip("…"));
+  }
+
+  // ファイルサイズ（結合後の推定は "~" 付き、無ければ従来の contentLength）
+  if (metaInfo?.sizeBytes != null) {
+    const sizeChip = makeChip("~" + formatSize(metaInfo.sizeBytes));
+    sizeChip.classList.add("meta-chip--size");
+    meta.appendChild(sizeChip);
+  } else if (item.contentLength != null) {
     const sizeChip = makeChip(formatSize(item.contentLength));
     sizeChip.classList.add("meta-chip--size");
     meta.appendChild(sizeChip);
   }
 
-  // 検出元チップ（Network: 緑 / Blob: 橙 / DOM: 紫）
-  const sourceLabel = item.source === "network" ? "Network"
-    : item.source === "blob" ? "Blob"
-    : "DOM";
-  const sourceChipClass = item.source === "network" ? "meta-chip--network"
-    : item.source === "blob"    ? "meta-chip--blob"
-    : "meta-chip--dom";
-  const sourceChip = makeChip(sourceLabel);
-  sourceChip.classList.add(sourceChipClass);
-  meta.appendChild(sourceChip);
-
-  info.appendChild(filenameEl);
   info.appendChild(domainEl);
   info.appendChild(meta);
 
-  // ── コピーボタン ──
-  const copyBtn = document.createElement("button");
-  copyBtn.className = "copy-btn";
-  copyBtn.textContent = "コピー";
-  copyBtn.title = item.url;
-  copyBtn.addEventListener("click", () => copyURL(item.url, copyBtn));
-
   li.appendChild(tagBadge);
   li.appendChild(info);
-  li.appendChild(copyBtn);
 
   // ── ダウンロードボタン ──
   const dlBtn = buildDownloadButton(item);
@@ -107,7 +90,7 @@ function buildItem(item) {
     li.title = "クリックして画質一覧を表示";
     li.addEventListener("click", (e) => {
       // DL ボタン・コピーボタンのクリックは伝播させない
-      if (e.target.closest(".dl-btn, .copy-btn")) return;
+      if (e.target.closest(".dl-btn")) return;
       toggleHlsAccordion(li, item);
     });
   }
@@ -121,7 +104,7 @@ function buildItem(item) {
     li.classList.add("media-item--dash");
     li.title = "クリックしてトラック一覧を表示";
     li.addEventListener("click", (e) => {
-      if (e.target.closest(".dl-btn, .copy-btn")) return;
+      if (e.target.closest(".dl-btn")) return;
       toggleDashAccordion(li, item);
     });
   }

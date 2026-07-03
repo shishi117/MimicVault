@@ -48,6 +48,15 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     }
 
+    // ポップアップ表示用のメタ情報（方式・長さ・結合後サイズ）の先読み取得
+    case "GET_MEDIA_META": {
+      const { url, mimeHint, pageURL } = message;
+      getMediaMeta(url, mimeHint ?? "", pageURL ?? "")
+        .then(meta => sendResponse(meta))
+        .catch(err => sendResponse({ ok: false, error: err.message }));
+      return true;
+    }
+
     // ポップアップの「ダウンロード」ボタンからの要求
     case "DOWNLOAD_MEDIA": {
       const { url, mimeHint, pageURL } = message;

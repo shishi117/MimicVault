@@ -33,11 +33,6 @@ async function startDownload(item, btn) {
   const existing = downloadStates.get(item.url);
   if (existing && existing.state === "downloading") return;
 
-  // メタ情報を保存（DL パネルでの表示・リトライに使用）
-  if (!downloadMeta.has(item.url)) {
-    downloadMeta.set(item.url, { item, detectedAt: Date.now() });
-  }
-
   // 状態を初期化してすぐ UI を更新
   const ds = { downloadId: null, state: "downloading", progress: 0 };
   downloadStates.set(item.url, ds);
@@ -62,8 +57,6 @@ async function startDownload(item, btn) {
     ds.state = "error";
     applyDownloadButtonState(btn, ds);
   }
-
-  if (activeFilter === "dl") renderDlPanel();
 }
 
 /**

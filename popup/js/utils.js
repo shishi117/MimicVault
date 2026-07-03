@@ -1,5 +1,5 @@
 // popup/js/utils.js — MimicVault
-// 汎用ユーティリティ showToast/makeChip/extract*/formatSize/copyURL
+// 汎用ユーティリティ showToast/makeChip/extract*/formatDuration/formatSize
 
 "use strict";
 
@@ -52,9 +52,14 @@ function extractFilename(url) {
   }
 }
 
-/** URL から拡張子を取得 */
-function extractExt(url) {
-  return (url.match(/\.([a-z0-9]+)(\?|#|$)/i) ?? [])[1] ?? null;
+/** 秒数を M:SS / H:MM:SS 形式に変換 */
+function formatDuration(sec) {
+  if (sec == null || !isFinite(sec) || sec <= 0) return "";
+  const s = Math.round(sec);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const ss = String(s % 60).padStart(2, "0");
+  return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${ss}` : `${m}:${ss}`;
 }
 
 /** バイト数を人間が読みやすい文字列に変換 */
@@ -64,25 +69,5 @@ function formatSize(bytes) {
   if (bytes >= 1_048_576)     return `${(bytes / 1_048_576).toFixed(1)} MB`;
   if (bytes >= 1_024)         return `${(bytes / 1_024).toFixed(0)} KB`;
   return `${bytes} B`;
-}
-
-/** クリップボードにコピー */
-async function copyURL(url, btn) {
-  try {
-    await navigator.clipboard.writeText(url);
-    btn.textContent = "✓ コピー済み";
-    btn.classList.add("copied");
-    setTimeout(() => {
-      btn.textContent = "コピー";
-      btn.classList.remove("copied");
-    }, 1500);
-  } catch (_) {
-    const el = document.createElement("textarea");
-    el.value = url;
-    document.body.appendChild(el);
-    el.select();
-    document.execCommand("copy");
-    document.body.removeChild(el);
-  }
 }
 

@@ -37,11 +37,6 @@ async function startHlsSegmentDownload(item, variantUrl, btn) {
   const existing = hlsDownloadStates.get(variantUrl);
   if (existing && existing.state === "fetching") return; // 二重起動防止
 
-  // メタ情報を保存（DL パネルでの表示・リトライに使用）
-  if (!hlsDownloadMeta.has(variantUrl)) {
-    hlsDownloadMeta.set(variantUrl, { item, detectedAt: Date.now() });
-  }
-
   // 状態を初期化してすぐ UI を更新
   const hds = { state: "fetching", current: 0, total: 0 };
   hlsDownloadStates.set(variantUrl, hds);
@@ -73,7 +68,6 @@ async function startHlsSegmentDownload(item, variantUrl, btn) {
       liveRecordingStates.set(variantUrl, lrs);
       buildLiveRecordingBanner();
       applyLiveRecordingButtonState(btn, lrs, variantUrl);
-      if (activeFilter === "dl") renderDlPanel();
       return;
     }
     // ── VOD 完了 ─────────────────────────────────────────────────────────────
@@ -86,7 +80,6 @@ async function startHlsSegmentDownload(item, variantUrl, btn) {
   }
 
   applyHlsDownloadButtonState(btn, hds);
-  if (activeFilter === "dl") renderDlPanel();
 }
 
 /**

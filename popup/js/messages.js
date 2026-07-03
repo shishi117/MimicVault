@@ -29,8 +29,6 @@ browser.downloads.onChanged.addListener((delta) => {
 
   // ボタン UI を更新する
   updateDownloadButton(url);
-  // DL タブが開いていれば DL パネルも更新
-  if (activeFilter === "dl") renderDlPanel();
 });
 
 /**
@@ -47,7 +45,6 @@ browser.runtime.onMessage.addListener((message) => {
       dds.current = current;
       dds.total   = total;
       updateDashDownloadButton(key);
-      if (activeFilter === "dl") renderDlPanel();
     }
     return;
   }
@@ -60,7 +57,6 @@ browser.runtime.onMessage.addListener((message) => {
     hds.total      = total;
     hds.converting = converting ?? false; // true = FFmpeg 変換フェーズ（ステップ16）
     updateHlsDownloadButton(url);
-    if (activeFilter === "dl") renderDlPanel();
     return;
   }
 
@@ -74,7 +70,6 @@ browser.runtime.onMessage.addListener((message) => {
       mds.current = current;
       mds.total   = total;
       updateDashMuxButton(mpdUrl);
-      if (activeFilter === "dl") renderDlPanel();
     }
     return;
   }

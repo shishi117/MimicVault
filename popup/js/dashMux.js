@@ -43,7 +43,6 @@ async function startDashMux(item, videoRep, audioRep, btn) {
     mds.error = result?.error ?? "unknown";
   }
   applyDashMuxButtonState(btn, mds);
-  if (activeFilter === "dl") renderDlPanel();
 }
 
 /** data-mpd-url をもつ mux ボタンを探して状態を更新する */

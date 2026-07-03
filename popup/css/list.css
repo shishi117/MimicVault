@@ -139,21 +139,3 @@
   .meta-chip--size    { background: #0e2a45; color: #74b8f0; }
 }
 
-/* コピーボタン */
-.copy-btn {
-  flex-shrink: 0;
-  background: none;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text-sub);
-  font-size: 11px;
-  padding: 3px 8px;
-  cursor: pointer;
-  transition: border-color .12s, color .12s;
-  white-space: nowrap;
-  margin-top: 1px;
-}
-
-.copy-btn:hover  { border-color: var(--accent); color: var(--accent); }
-.copy-btn.copied { border-color: #22a06b; color: #22a06b; }
-

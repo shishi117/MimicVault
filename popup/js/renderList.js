@@ -5,29 +5,6 @@
 
 // ─── フィルタ + ソート + レンダリング ─────────────────────────────────────────
 function renderList() {
-  // ── DL タブ: メディアリストではなく DL パネルを表示 ──────────────────────────
-  if (activeFilter === "dl") {
-    elEmpty.classList.add("hidden");
-    elNoMatch.classList.add("hidden");
-    elList.classList.add("hidden");
-    elDlPanel.classList.remove("hidden");
-    elToolbar.classList.remove("hidden");
-    elToolbar.classList.add("toolbar--dl");
-    elClearBtn.classList.add("hidden");
-
-    const total = countDlEntries();
-    elBadge.textContent = String(allItems.length);
-    elBadge.classList.toggle("hidden", allItems.length === 0);
-    elCount.textContent = `${total} 件のDL`;
-
-    renderDlPanel();
-    return;
-  }
-
-  // DL タブ以外では DL パネルを非表示・ツールバーのDLクラスを除去
-  elDlPanel.classList.add("hidden");
-  elToolbar.classList.remove("toolbar--dl");
-
   // フィルタ
   let items = allItems.filter(item => {
     if (activeFilter === "all")   return true;

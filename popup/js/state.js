@@ -13,7 +13,6 @@ const elToolbar  = document.getElementById("toolbar");
 const elClearBtn = document.getElementById("clear-btn");
 const elSort     = document.getElementById("sort-select");
 const elLiveBanner = document.getElementById("live-banner");
-const elDlPanel  = document.getElementById("dl-panel");
 const filterTabs = document.querySelectorAll(".filter-tab");
 const elCompanionIndicator = document.getElementById("companion-indicator");
 const elSettingsBtn        = document.getElementById("settings-btn");
@@ -26,6 +25,13 @@ let currentTabId = null;   // サムネイルリクエストで使うタブ ID
 
 // ステップ18: 設定キャッシュ（hlsPreferred を HLS アコーディオン表示に反映するのに使用）
 let userSettings = { hlsPreferred: "highest", filenameTemplate: "%title" };
+
+/**
+ * ポップアップ表示用メタ情報の先読みキャッシュ（v0.19.0）。
+ * GET_MEDIA_META の応答を格納し、buildItem が方式・長さ・結合後サイズを表示するのに使う。
+ * key: item.url, value: { method, durationSec, sizeBytes, estimated }
+ */
+const mediaMetaStore = new Map();
 
 // ─── ダウンロード状態管理 ──────────────────────────────────────────────────────
 /**
@@ -82,25 +88,6 @@ const dashMuxMeta = new Map();
  * key: mpdUrl, value: number（秒）
  */
 const mpdDurationStore = new Map();
-
-// ─── DL パネル用メタ情報（ステップ14） ────────────────────────────────────────
-/**
- * 直接ダウンロード開始時のメタ情報。DL パネルでの表示・リトライに使用。
- * key: url, value: { item, detectedAt }
- */
-const downloadMeta = new Map();
-
-/**
- * HLS セグメントダウンロード開始時のメタ情報。
- * key: variantUrl, value: { item, detectedAt }
- */
-const hlsDownloadMeta = new Map();
-
-/**
- * DASH トラックダウンロード開始時のメタ情報。
- * key: `${mpdUrl}::${repId}`, value: { item, rep, trackType, detectedAt }
- */
-const dashDownloadMeta = new Map();
 
 /**
  * ライブ録画セッションの状態管理（ステップ10）。

@@ -20,11 +20,6 @@ async function startDashTrackDownload(item, rep, trackType, btn) {
   // 二重起動防止
   if (dashDownloadStates.get(dashKey)?.state === "fetching") return;
 
-  // メタ情報を保存（DL パネルでの表示・リトライに使用）
-  if (!dashDownloadMeta.has(dashKey)) {
-    dashDownloadMeta.set(dashKey, { item, rep, trackType, detectedAt: Date.now() });
-  }
-
   // 状態初期化してすぐ UI 更新
   const dds = { state: "fetching", current: 0, total: 0 };
   dashDownloadStates.set(dashKey, dds);
@@ -56,8 +51,6 @@ async function startDashTrackDownload(item, rep, trackType, btn) {
     dds.error = result?.error ?? "unknown";
     applyDashDownloadButtonState(btn, dds);
   }
-
-  if (activeFilter === "dl") renderDlPanel();
 }
 
 /**

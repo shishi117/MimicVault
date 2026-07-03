@@ -71,6 +71,30 @@ async function init() {
 
   renderList();
   requestThumbnails(currentTabId);
+  loadMediaMeta();  // DASH/HLS の方式・長さ・結合後サイズを先読みして再描画
+}
+
+/**
+ * 検出済みの DASH/HLS アイテムのメタ情報（方式・長さ・結合後サイズ）を
+ * background に並列で問い合わせ、mediaMetaStore に格納してリストを再描画する。
+ * 直接ファイル（mp4 等）は長さ不明のため対象外。
+ * 既知の簡略化: 全件 settle 後に一括再描画（通常ページ内のストリームは1本程度）。
+ */
+async function loadMediaMeta() {
+  const streams = allItems.filter(it => mediaMethodLabel(it) !== "直接");
+  if (streams.length === 0) return;
+
+  await Promise.allSettled(streams.map(async (item) => {
+    const meta = await browser.runtime.sendMessage({
+      type:     "GET_MEDIA_META",
+      url:      item.url,
+      mimeHint: item.mimeHint ?? "",
+      pageURL:  item.pageURL ?? "",
+    });
+    if (meta?.ok) mediaMetaStore.set(item.url, meta);
+  }));
+
+  renderList();
 }
 
 /**
@@ -110,7 +134,6 @@ async function startDownloadAll() {
 
   elDlAllBtn.disabled = false;
   elDlAllBtn.textContent = "▶ 全DL";
-  if (activeFilter === "dl") renderDlPanel();
 }
 
 // ─── 起動 ────────────────────────────────────────────────────────────────────
