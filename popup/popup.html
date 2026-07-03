@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="css/chip.css">
   <link rel="stylesheet" href="css/companion.css">
   <link rel="stylesheet" href="css/controls.css">
+  <link rel="stylesheet" href="css/bookmarks.css">
 </head>
 <body>
 
@@ -35,12 +36,32 @@
             class="companion-indicator companion-disconnected"
             title="Companion未接続 — クリックして再接続"
             aria-label="FFmpeg companion 接続状態">⚡</button>
+    <!-- ブックマーク一括DLパネルの開閉 -->
+    <button id="bookmark-btn"
+            class="settings-btn"
+            title="ブックマーク一括ダウンロード"
+            aria-label="ブックマーク一括ダウンロード">🔖</button>
     <!-- 設定ページへのリンク（ステップ18）-->
     <button id="settings-btn"
             class="settings-btn"
             title="設定を開く"
             aria-label="設定を開く">⚙</button>
   </header>
+
+  <!-- ブックマーク一括ダウンロードパネル（メディアリストと排他表示） -->
+  <section id="bookmark-panel" class="bookmark-panel hidden">
+    <div class="bookmark-row">
+      <select id="bookmark-folder" class="sort-select" aria-label="フォルダを選択"></select>
+    </div>
+    <div class="bookmark-row">
+      <label class="bookmark-selall">
+        <input type="checkbox" id="bookmark-selall"> すべて選択
+      </label>
+      <button id="bookmark-dl-btn" class="dl-all-btn">選択をDL</button>
+    </div>
+    <ul id="bookmark-list" class="bookmark-list"></ul>
+    <p id="bookmark-empty" class="state-hint">このフォルダにブックマークはありません</p>
+  </section>
 
   <!-- ライブ録画バナー（録画中セッションが存在する場合に表示） -->
   <div id="live-banner" class="live-banner hidden"></div>
@@ -97,6 +118,7 @@
   <script src="js/liveBanner.js"></script>
   <script src="js/downloadButton.js"></script>
   <script src="js/messages.js"></script>
+  <script src="js/bookmarks.js"></script>
   <script src="js/init.js"></script>
 </body>
 </html>

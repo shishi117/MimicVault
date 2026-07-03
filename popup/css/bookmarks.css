@@ -1,0 +1,60 @@
+/* popup/css/bookmarks.css — MimicVault: ブックマーク一括DLパネル */
+
+.bookmark-panel {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.bookmark-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.bookmark-panel #bookmark-folder { flex: 1; }
+
+.bookmark-selall {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-sub);
+  cursor: pointer;
+}
+
+.bookmark-list {
+  list-style: none;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.bookmark-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 4px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.bookmark-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bookmark-status {
+  font-size: 11px;
+  color: var(--text-sub);
+  min-width: 40px;
+  text-align: right;
+}
+
+.bookmark-status.done   { color: #2e9e5b; }
+.bookmark-status.failed { color: #d1495b; }
+
+.settings-btn.active { color: var(--accent); }

@@ -199,6 +199,14 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     }
 
+    // ブックマーク一括ダウンロード（タブ検出方式）
+    case "DOWNLOAD_BOOKMARKS": {
+      downloadBookmarks(message.ids)
+        .then(result => sendResponse(result))
+        .catch(err   => sendResponse({ ok: false, error: err.message }));
+      return true;
+    }
+
     // ポップアップの「クリア」ボタンからの要求
     case "CLEAR_MEDIA_LIST": {
       delete tabMediaStore[message.tabId];
