@@ -2,6 +2,8 @@
 
 ブラウザの通信からメディアを検出してダウンロードする Firefox 拡張機能。
 HLS→MP4 変換や mux などは Native Messaging 経由の companion アプリが担当します（`docs/コンパニオンアプリ.md` 参照）。
+**拡張機能自体には動画をMP4に変換する機能は無いため、companion app が無いとMP4化できません**。
+companion 未接続時は HLS/DASH 等はすべて生の `.ts`/断片化 `.mp4` のまま保存されます。
 
 ## 対応規格
 
