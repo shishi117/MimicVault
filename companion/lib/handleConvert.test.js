@@ -7,18 +7,18 @@ const assert = require("assert");
 const { buildFfmpegHeaders } = require("./handleConvert");
 
 assert.strictEqual(
-  buildFfmpegHeaders("https://example.com/video/1", "UA/1.0"),
-  "Referer: https://example.com/video/1\r\nOrigin: https://example.com\r\nUser-Agent: UA/1.0\r\n",
-  "referer + userAgent → Referer/Origin/User-Agent をすべて含む"
+  buildFfmpegHeaders("https://example.com/video/1"),
+  "Referer: https://example.com/video/1\r\nOrigin: https://example.com\r\nAccept: */*\r\nSec-Fetch-Mode: cors\r\nSec-Fetch-Dest: empty\r\nSec-Fetch-Site: cross-site\r\n",
+  "referer あり → Referer/Origin + ブラウザ標準ヘッダーを含む"
 );
 assert.strictEqual(
-  buildFfmpegHeaders("", ""),
-  "",
-  "両方なし → 空文字（-headers を付けない）"
+  buildFfmpegHeaders(""),
+  "Accept: */*\r\nSec-Fetch-Mode: cors\r\nSec-Fetch-Dest: empty\r\nSec-Fetch-Site: cross-site\r\n",
+  "referer なし → ブラウザ標準ヘッダーのみ"
 );
 assert.strictEqual(
-  buildFfmpegHeaders("not a url", "UA/1.0"),
-  "Referer: not a url\r\nUser-Agent: UA/1.0\r\n",
+  buildFfmpegHeaders("not a url"),
+  "Referer: not a url\r\nAccept: */*\r\nSec-Fetch-Mode: cors\r\nSec-Fetch-Dest: empty\r\nSec-Fetch-Site: cross-site\r\n",
   "referer が URL として不正でも Origin を省いて続行する"
 );
 

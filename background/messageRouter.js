@@ -155,7 +155,7 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const isTs   = it => /\.ts(\?|#|$)/i.test(it.url)   || (it.mimeHint || "").includes("mp2t");
       const hasHls = items.some(isHls);
 
-      const results    = [];  // 直接DL結果
+      const results    = [];  // DL結果（互換のためのレスポンス形）
       const skipped    = [];  // スキップ通知用 { url, reason }
       let   converting = 0;   // companion 変換に回した件数
 
@@ -194,19 +194,9 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // m3u8 がある = この .ts はそのストリームのセグメント。HLS 変換でまとめて
           // 取得されるので個別DLしない（一覧でも隠している）。
           continue;
-        } else {
-          // 通常ファイル（mp4 等）と、m3u8 の無い単独 .ts は従来通り直接DL
-          const filename = applyFilenameTemplate(inferStem(item.url), inferExt(item.url, item.mimeHint));
-          if (item.pageURL) pendingReferers.set(item.url, item.pageURL);
-          promises.push(
-            browser.downloads.download({ url: item.url, filename })
-              .then(dlId => results.push({ url: item.url, ok: true, downloadId: dlId }))
-              .catch(err => {
-                pendingReferers.delete(item.url);
-                results.push({ url: item.url, ok: false, error: err.message });
-              })
-          );
         }
+        // 直接DL機能は廃止。HLS/DASH/収集ストリーム以外（通常の mp4 直リンク等）は
+        // addToStore の時点で一覧に入らないため、この分岐に到達することはない。
       }
 
       Promise.all(promises)
