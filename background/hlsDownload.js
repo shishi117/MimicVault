@@ -134,42 +134,16 @@ async function downloadHlsSegments(mediaPlaylistUrl, pageURL, tabId) {
   // 取れればそちらを優先する（以降の MP4/TS どちらの保存でも共通で使う）。
   const hlsStem = await inferTitleStem(mediaPlaylistUrl, tabId);
 
-  // ── 4.5 companion 接続時は combined を remux して MP4 化を試みる ───────────
-  // downloadHlsViaCompanion（FFmpeg が自前で URL を直接 fetch する経路）が
-  // anti-leech な配信元で失敗してここに落ちてきた場合でも、ブラウザの fetch
-  // （Referer 注入済み）で取得済みの combined はそのまま companion に渡せば
-  // FFmpeg はローカルファイルを読むだけになり、ネットワーク起因の失敗を避けられる。
-  if (companionPort) {
-    const outputName = applyFilenameTemplate(hlsStem, "mp4");
-    try {
-      let bin = "";
-      for (let i = 0; i < combined.length; i++) bin += String.fromCharCode(combined[i]);
-      const inputB64 = btoa(bin);
-      const result = await sendToCompanion(
-        { type: "remux", inputB64, outputName },
-        (prog) => browser.runtime.sendMessage({
-          type: "HLS_DOWNLOAD_PROGRESS", url: mediaPlaylistUrl,
-          current: prog.percent ?? 0, total: 100, converting: true,
-        }).catch(() => {})
-      );
-      if (result.ok) return { ok: true, downloadId: null, filePath: result.filePath };
-      console.warn("[HLS] remux 失敗、.ts 保存へ:", result.error);
-    } catch (err) {
-      console.warn("[HLS] remux 例外、.ts 保存へ:", err.message);
-    }
-  }
-
-  const blob    = new Blob([combined], { type: "video/mp2t" });
-  const blobUrl = URL.createObjectURL(blob);
-
-  // ── 5. ダウンロード開始 ───────────────────────────────────────────────────
+  // ── 4.5 まず .ts として保存する（確実に動作する経路） ─────────────────────
   // HLS セグメント結合物は必ず MPEG-TS コンテナなので拡張子を .ts に強制する。
   // playlist URL が video.mp4?format=m3u8 のような形でも誤った .mp4 にならない。
-  const filename = applyFilenameTemplate(hlsStem, "ts");
+  const blob    = new Blob([combined], { type: "video/mp2t" });
+  const blobUrl = URL.createObjectURL(blob);
+  const tsFilename = applyFilenameTemplate(hlsStem, "ts");
 
   let downloadId;
   try {
-    downloadId = await browser.downloads.download({ url: blobUrl, filename });
+    downloadId = await browser.downloads.download({ url: blobUrl, filename: tsFilename });
   } catch (err) {
     URL.revokeObjectURL(blobUrl);
     return { ok: false, error: err.message };
@@ -188,6 +162,44 @@ async function downloadHlsSegments(mediaPlaylistUrl, pageURL, tabId) {
       browser.downloads.onChanged.removeListener(onDlChanged);
     }
   });
+
+  // ── 4.6 companion 接続時は、保存した .ts をローカルファイルのまま MP4 に remux ──
+  // downloadHlsViaCompanion（FFmpeg が自前で URL を直接 fetch する経路）が
+  // anti-leech な配信元で失敗してここに落ちてきた場合でも、ブラウザの fetch
+  // （Referer 注入済み）で取得済みの .ts ファイルをそのまま companion に渡せば、
+  // FFmpeg はネットワークに触れずローカルファイルを読むだけで済む。
+  //
+  // 既知の上限: バイト列を base64 化して Native Messaging 経由で渡す方式
+  // （downloadSegmentGroup.js と同じ）は、長時間の HLS 動画（数百MB〜）では
+  // 1バイトずつの文字列結合 + 全体コピーが重すぎて実質ハングしたため不採用。
+  // 代わりに browser.downloads でディスクに書き出した実ファイルのパスを渡し、
+  // companion 側はそのパスを直接 ffmpeg -i に渡す（バイト列のやり取りをしない）。
+  if (companionPort) {
+    const tsDone = await awaitDownloadComplete(downloadId);
+    if (tsDone.ok) {
+      try {
+        const [info] = await browser.downloads.search({ id: downloadId });
+        const inputPath = info?.filename;
+        if (inputPath) {
+          const outputName = applyFilenameTemplate(hlsStem, "mp4");
+          const result = await sendToCompanion(
+            { type: "remux", inputPath, outputName },
+            (prog) => browser.runtime.sendMessage({
+              type: "HLS_DOWNLOAD_PROGRESS", url: mediaPlaylistUrl,
+              current: prog.percent ?? 0, total: 100, converting: true,
+            }).catch(() => {})
+          );
+          if (result.ok) {
+            browser.downloads.removeFile(downloadId).catch(() => {});
+            return { ok: true, downloadId: null, filePath: result.filePath };
+          }
+          console.warn("[HLS] remux 失敗、.ts のまま保持:", result.error);
+        }
+      } catch (err) {
+        console.warn("[HLS] remux 例外、.ts のまま保持:", err.message);
+      }
+    }
+  }
 
   return { ok: true, downloadId };
 }

@@ -27,9 +27,15 @@
   }
 }
 
+/* サイドバーパネルとして使う前提: 固定幅ではなく利用可能な高さいっぱいに広がる
+   縦方向の flex レイアウトにし、#media-list（list.css）が残り領域を埋める。 */
+html, body { height: 100%; }
+
 body {
-  width: 360px;
-  min-height: 80px;
+  width: 100%;
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
   font-family: system-ui, -apple-system, sans-serif;
   font-size: 13px;
   color: var(--text);

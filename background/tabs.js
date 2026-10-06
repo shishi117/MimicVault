@@ -1,7 +1,13 @@
 // background/tabs.js — MimicVault
-// タブイベント（onRemoved/onUpdated）でのストア掃除
+// タブイベント（onRemoved/onUpdated）でのストア掃除・ツールバーアイコン動作
 
 "use strict";
+
+// ─── ツールバーアイコン: サイドバーの開閉（popup からサイドバーへ移行） ─────────
+// default_popup を外しているため、アイコンクリックで onClicked が発火する。
+browser.browserAction.onClicked.addListener(() => {
+  browser.sidebarAction.toggle();
+});
 
 // ─── タブイベント ─────────────────────────────────────────────────────────────
 

@@ -4,39 +4,13 @@
 "use strict";
 
 // ─── メイン ───────────────────────────────────────────────────────────────────
+/**
+ * サイドバーは（ポップアップと違い）タブを切り替えても閉じずに残り続ける。
+ * そのため一度きりのセットアップ（init）と、表示中タブが変わるたびに
+ * やり直す読み込み（loadActiveTab）を分離する。
+ */
 async function init() {
-  const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
-  if (!tab) return;
-  currentTabId = tab.id;
-
-  // ステップ18: 設定を先に読み込む（HLS アコーディオン表示時に使う）
-  await loadUserSettings();
-
-  try {
-    const res = await browser.runtime.sendMessage({
-      type: "GET_MEDIA_LIST",
-      tabId: tab.id,
-    });
-    allItems = res?.items ?? [];
-  } catch (_) {
-    allItems = [];
-  }
-
-  // ── ステップ10: 進行中のライブセッションを復元してバナーに表示 ──────────────
-  try {
-    const liveRes = await browser.runtime.sendMessage({ type: "GET_LIVE_SESSIONS" });
-    for (const s of liveRes?.sessions ?? []) {
-      liveRecordingStates.set(s.url, {
-        state:         s.state,
-        totalSegments: s.totalSegments,
-        chunkIndex:    s.chunkIndex,
-        stem:          s.stem,
-      });
-    }
-  } catch (_) {}
-  buildLiveRecordingBanner();
-
-  // イベント登録
+  // イベント登録（一度だけでよいもの）
   filterTabs.forEach(btn => {
     btn.addEventListener("click", () => {
       activeFilter = btn.dataset.filter;
@@ -59,7 +33,7 @@ async function init() {
       browser.runtime.openOptionsPage().catch(err => {
         console.error("[popup] openOptionsPage failed:", err);
       });
-      // ポップアップは options ページを開いた後すぐ閉じて UX をスムーズに
+      // ポップアップ版の名残: サイドバーでは window.close() は何もしない
       window.close();
     });
   }
@@ -75,9 +49,69 @@ async function init() {
   }
   initBookmarkPanel();
 
+  // ステップ18: 設定を先に読み込む（HLS 画質一覧表示時に使う）
+  await loadUserSettings();
+
+  await loadActiveTab();
+  watchActiveTabChanges();
+}
+
+/**
+ * 現在アクティブなタブの検出済みメディア一覧・ライブ録画状態を読み込んで表示する。
+ * サイドバーでタブを切り替えた時にも呼び直される。
+ */
+async function loadActiveTab() {
+  const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+  if (!tab) return;
+  currentTabId = tab.id;
+
+  try {
+    const res = await browser.runtime.sendMessage({
+      type: "GET_MEDIA_LIST",
+      tabId: tab.id,
+    });
+    allItems = res?.items ?? [];
+  } catch (_) {
+    allItems = [];
+  }
+
+  // ── ステップ10: 進行中のライブセッションを復元してバナーに表示 ──────────────
+  liveRecordingStates.clear();
+  try {
+    const liveRes = await browser.runtime.sendMessage({ type: "GET_LIVE_SESSIONS" });
+    for (const s of liveRes?.sessions ?? []) {
+      liveRecordingStates.set(s.url, {
+        state:         s.state,
+        totalSegments: s.totalSegments,
+        chunkIndex:    s.chunkIndex,
+        stem:          s.stem,
+      });
+    }
+  } catch (_) {}
+  buildLiveRecordingBanner();
+
   renderList();
   requestThumbnails(currentTabId);
   loadMediaMeta();  // DASH/HLS の方式・長さ・結合後サイズを先読みして再描画
+}
+
+/**
+ * サイドバーは開いたままタブを切り替えられるため、アクティブタブが変わるたびに
+ * loadActiveTab をやり直して表示を同期する（ポップアップは毎回作り直されるため不要だった）。
+ * 他ウィンドウでのタブ切り替えで無駄に再読み込みしないよう、自ウィンドウの
+ * イベントだけに絞る。
+ */
+async function watchActiveTabChanges() {
+  const win = await browser.windows.getCurrent();
+
+  browser.tabs.onActivated.addListener((activeInfo) => {
+    if (activeInfo.windowId === win.id) loadActiveTab();
+  });
+  browser.tabs.onUpdated.addListener((tabId, changeInfo, updatedTab) => {
+    if (tabId === currentTabId && changeInfo.status === "complete" && updatedTab.windowId === win.id) {
+      loadActiveTab();
+    }
+  });
 }
 
 /**
