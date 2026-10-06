@@ -38,12 +38,15 @@ async function downloadDashAndMux({ videoRep, audioRep, mpdUrl, mpdDuration, pag
   // ── 映像・音声セグメントを blob として取得（DL せずバッファに保持）──────
   async function fetchTrackToBlob(rep, trackType) {
     const { id, bandwidth, segInfo } = rep;
-    const { initUrl, segUrls } = expandSegmentUrls(segInfo, id, bandwidth, mpdDuration);
+    const { initUrl, initBytes, segUrls } = expandSegmentUrls(segInfo, id, bandwidth, mpdDuration);
     if (segUrls.length === 0) throw new Error(`no_segments (${trackType})`);
 
     const allBufs = [];
 
-    if (initUrl) {
+    // MSS(静的Smooth)は initBytes(自前生成済み)を優先し、fetch しない。
+    if (initBytes) {
+      allBufs.push(initBytes);
+    } else if (initUrl) {
       if (pageURL) pendingReferers.set(initUrl, pageURL);
       const res = await fetch(initUrl);
       pendingReferers.delete(initUrl);

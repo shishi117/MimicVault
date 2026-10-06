@@ -58,6 +58,9 @@
     "scripts": [
       "background/constants.js",
       "background/ismToDashUrl.js",
+      "background/mp4BoxWriter.js",
+      "background/mssInitSegment.js",
+      "background/mssManifestParse.js",
       "background/settings.js",
       "background/domainFilter.js",
       "background/filename.js",

@@ -70,15 +70,28 @@ function resolveTemplateUrl(template, vars, baseURL) {
  *   SegmentTemplate + $Number$     : mpdDuration から総セグメント数を算出
  *   SegmentTemplate + $Time$       : SegmentTimeline の各 t 値を使用
  *   SegmentList                    : segInfo.segments を URL に変換
+ *   MSS(type:"mss")                : CodecPrivateData から init を自前生成(initBytes)
  *
- * @param {object} segInfo     - parseMpd の返す segInfo
+ * @param {object} segInfo     - parseMpd / parseIsmManifest の返す segInfo
  * @param {string} repId       - $RepresentationID$ 展開用
  * @param {number} bandwidth   - $Bandwidth$ 展開用
  * @param {number} mpdDuration - 総再生時間（秒）。$Number$ テンプレートの総数計算に使用
- * @returns {{ initUrl: string|null, segUrls: string[] }}
+ * @returns {{ initUrl: string|null, initBytes?: ArrayBuffer, segUrls: string[] }}
  */
 function expandSegmentUrls(segInfo, repId, bandwidth, mpdDuration) {
   if (!segInfo) return { initUrl: null, segUrls: [] };
+
+  // ── MSS(静的 Smooth Streaming) ──────────────────────────────────────────
+  // init セグメントは URL ではなく CodecPrivateData から自前生成するため、
+  // initUrl ではなく initBytes(ArrayBuffer)を返す。呼び出し側(downloadDashTrack.js/
+  // downloadDashAndMux.js)は initBytes があれば fetch せずそのまま使う。
+  if (segInfo.type === "mss") {
+    return {
+      initUrl: null,
+      initBytes: buildMssInitSegment(segInfo),
+      segUrls: expandMssFragmentUrls(segInfo),
+    };
+  }
 
   const {
     type, initialization, media,
