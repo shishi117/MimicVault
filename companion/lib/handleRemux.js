@@ -11,35 +11,46 @@ const { FFMPEG, getDownloadsDir } = require("./ffmpeg");
 
 // ─── 収集ストリーム remux（v0.19.0） ─────────────────────────────────────────
 /**
- * 結合済みの fMP4/TS 断片（init+moof… を連結した単一入力）を base64 で受け取り、
+ * 結合済みの fMP4/TS 断片（init+moof… を連結した単一入力）を、
  * FFmpeg で正規の progressive MP4 に remux して Downloads フォルダへ保存する。
+ * 入力は次のどちらかで渡す:
+ *   - inputB64:  バイト列を base64 化したもの（小さい入力向け。一時ファイルに書き出す）
+ *   - inputPath: 既にディスク上にある入力ファイルの絶対パス（大きい入力向け。
+ *                Native Messaging 経由でバイト列をやり取りしないため、
+ *                数百MB〜の HLS VOD 等でもメモリ・速度の問題が起きない）
  *
  * メッセージ形式:
- *   { type: "remux", requestId, inputB64, outputName }
+ *   { type: "remux", requestId, inputB64?, inputPath?, outputName }
  *
  * FFmpeg コマンド:
- *   ffmpeg -y -i input_tmp.mp4 -c copy -movflags +faststart output.mp4
+ *   ffmpeg -y -i <input> -c copy -movflags +faststart output.mp4
  */
-async function handleRemux({ requestId, inputB64, outputName }) {
-  if (!inputB64) {
-    sendMessage({ requestId, ok: false, error: "inputB64 is required" });
+async function handleRemux({ requestId, inputB64, inputPath, outputName }) {
+  if (!inputB64 && !inputPath) {
+    sendMessage({ requestId, ok: false, error: "inputB64 or inputPath is required" });
     return;
   }
 
   const tmpDir       = os.tmpdir();
-  const inputTmp     = path.join(tmpDir, `ms_remux_${requestId}.mp4`);
   const downloadsDir = getDownloadsDir();
   const safeOutput   = (outputName || "output.mp4").replace(/[/\\:*?"<>|]/g, "_");
   const outputPath   = path.join(downloadsDir, safeOutput);
 
-  try {
-    fs.writeFileSync(inputTmp, Buffer.from(inputB64, "base64"));
-  } catch (err) {
-    sendMessage({ requestId, ok: false, error: `tmp write failed: ${err.message}` });
-    return;
+  // inputPath 指定時はディスク上の既存ファイルをそのまま使う（一時ファイル作成なし）。
+  // inputB64 指定時のみ、従来通り一時ファイルに書き出して使う。
+  let input = inputPath;
+  const isTmpInput = !inputPath;
+  if (isTmpInput) {
+    input = path.join(tmpDir, `ms_remux_${requestId}.mp4`);
+    try {
+      fs.writeFileSync(input, Buffer.from(inputB64, "base64"));
+    } catch (err) {
+      sendMessage({ requestId, ok: false, error: `tmp write failed: ${err.message}` });
+      return;
+    }
   }
 
-  const args = ["-y", "-i", inputTmp, "-c", "copy", "-movflags", "+faststart", outputPath];
+  const args = ["-y", "-i", input, "-c", "copy", "-movflags", "+faststart", outputPath];
 
   return new Promise((resolve) => {
     let ffmpeg;
@@ -93,7 +104,9 @@ async function handleRemux({ requestId, inputB64, outputName }) {
     });
 
     function cleanup() {
-      try { fs.unlinkSync(inputTmp); } catch (_) {}
+      // inputPath はユーザーが保存したファイル（.ts 等）なので削除しない。
+      // 一時ファイルを作った場合（inputB64 経由）のみ削除する。
+      if (isTmpInput) { try { fs.unlinkSync(input); } catch (_) {} }
     }
   });
 }
