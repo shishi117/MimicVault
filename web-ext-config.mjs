@@ -19,7 +19,6 @@ export default {
     'package-lock.json',
     'web-ext-config.mjs',
     '*.md',
-    'NEXT-STEP.txt',
   ],
 
   run: {
