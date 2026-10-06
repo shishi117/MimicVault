@@ -5,7 +5,7 @@
 const { spawn } = require("child_process");
 const path = require("path");
 const { sendMessage } = require("./io");
-const { FFMPEG, getDownloadsDir } = require("./ffmpeg");
+const { FFMPEG, getDownloadsDir, supportsAllowedSegmentExtensions } = require("./ffmpeg");
 
 // ─── HLS → MP4 変換（ステップ16） ────────────────────────────────────────────
 
@@ -33,6 +33,11 @@ const { FFMPEG, getDownloadsDir } = require("./ffmpeg");
  *
  * -allowed_extensions ALL は .key ファイルなど m3u8 内で参照される拡張子を
  * すべて許可するために必要。FFmpeg はデフォルトで未知の拡張子を拒否する。
+ * 新しめの FFmpeg はセグメント本体にも別枠で -allowed_segment_extensions
+ * という拡張子チェックを持つ（対応している場合のみ ALL を付与する。
+ * supportsAllowedSegmentExtensions 参照）。これが無いと、セグメントを
+ * .jpeg 等に偽装する配信元（surrit.com 等）で
+ * "URL ... is not in allowed_segment_extensions" → 変換失敗になる。
  *
  * FFmpeg は常に自前の User-Agent ヘッダー（既定 "Lavf/x.y.z"）を送るため、
  * -headers に "User-Agent: ..." を混ぜると2本の User-Agent ヘッダーが
@@ -84,6 +89,14 @@ async function handleConvert({ requestId, playlistUrl, referer, userAgent, outpu
     .replace(/[/\\:*?"<>|]/g, "_");
   const outputPath = path.join(downloadsDir, safeOutputName);
 
+  // 新しめの FFmpeg は allowed_extensions と別にセグメント本体用の拡張子
+  // チェックを持つ（既定リストに .ts 等はあるが .jpeg 等の偽装拡張子は無い）。
+  // 古い FFmpeg にはこのオプション自体が無く、渡すと起動自体が失敗するため
+  // 対応状況を確認してから付ける。
+  const segExtArg = (await supportsAllowedSegmentExtensions())
+    ? ["-allowed_segment_extensions", "ALL"]
+    : [];
+
   // ── FFmpeg 引数を構築 ────────────────────────────────────────────────────
   const args = [
     "-y",   // 既存ファイルを上書き（確認なし）
@@ -94,6 +107,7 @@ async function handleConvert({ requestId, playlistUrl, referer, userAgent, outpu
     "-headers", buildFfmpegHeaders(referer),
     // .key など m3u8 が参照するすべての拡張子を許可
     "-allowed_extensions", "ALL",
+    ...segExtArg,
     // リモートのプレイリストのみ扱うため file は許可しない。
     // file を入れると悪意ある m3u8 が file:///... をセグメント参照して
     // ローカルファイルを読み出せてしまう（LFI）。crypto は AES-128 復号に必要。

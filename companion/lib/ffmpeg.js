@@ -57,4 +57,21 @@ function getDownloadsDir() {
   return home;
 }
 
-module.exports = { FFMPEG, getFfmpegVersion, getDownloadsDir };
+/**
+ * -allowed_segment_extensions（比較的新しい FFmpeg の hls demuxer オプション）
+ * に対応しているかを判定する。古い FFmpeg では "Unrecognized option" で
+ * 起動自体が失敗するため、渡す前に確認する必要がある。
+ * プロセス内でキャッシュし、以後は ffmpeg を再実行しない。
+ */
+let cachedSupportsSegExt = null;
+function supportsAllowedSegmentExtensions() {
+  if (cachedSupportsSegExt !== null) return Promise.resolve(cachedSupportsSegExt);
+  return new Promise((resolve) => {
+    execFile(FFMPEG, ["-hide_banner", "-h", "demuxer=hls"], { timeout: 8000 }, (err, stdout, stderr) => {
+      cachedSupportsSegExt = !err && /allowed_segment_extensions/.test(stdout + stderr);
+      resolve(cachedSupportsSegExt);
+    });
+  });
+}
+
+module.exports = { FFMPEG, getFfmpegVersion, getDownloadsDir, supportsAllowedSegmentExtensions };
