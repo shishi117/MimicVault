@@ -1,5 +1,5 @@
 // popup/js/downloadButton.js — MimicVault
-// 直接ダウンロードボタン buildDownloadButton/startDownload
+// ダウンロードボタン buildDownloadButton/startDownload
 
 "use strict";
 
@@ -24,27 +24,10 @@ function buildDownloadButton(item) {
     applyHlsDownloadButtonState(btn, hlsDownloadStates.get(item.url));
     btn.addEventListener("click", () => startHlsSegmentDownload(item, item.url, btn));
   } else {
+    // 直接DL機能は廃止済み。HLS/収集ストリーム以外は addToStore の時点で
+    // 一覧に入らないため、この分岐に来るのは DASH のみ。
     applyDownloadButtonState(btn, downloadStates.get(item.url));
-    // 直接DL（HLS/DASH でない生ファイル）はブラウザのDL機能を使うため履歴に残り
-    // “見せかけ”できない。誤操作で痕跡を残さないよう2段階クリックで確認させる。
-    const isDirect = mediaMethodLabel(item) === "直接";
-    btn.addEventListener("click", () => {
-      if (isDirect && !btn.dataset.confirm) {
-        // 1回目: 警告して確認待ちにする
-        btn.dataset.confirm = "1";
-        btn.textContent = "⚠ 直接DL?";
-        showToast("直接DLはブラウザのDL機能を使用し履歴に残ります。通常アクセスに見せかけできません。もう一度押すと実行します");
-        clearTimeout(btn._confirmTimer);
-        btn._confirmTimer = setTimeout(() => {
-          delete btn.dataset.confirm;
-          applyDownloadButtonState(btn, downloadStates.get(item.url));
-        }, 4000);
-        return;
-      }
-      clearTimeout(btn._confirmTimer);
-      delete btn.dataset.confirm;
-      startDownload(item, btn);
-    });
+    btn.addEventListener("click", () => startDownload(item, btn));
   }
 
   return btn;
