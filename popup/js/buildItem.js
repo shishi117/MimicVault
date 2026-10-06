@@ -82,19 +82,13 @@ function buildItem(item) {
   const dlBtn = buildDownloadButton(item);
   li.appendChild(dlBtn);
 
-  // m3u8 アイテムは行全体をクリックでバリアント展開
+  // m3u8 アイテムは画質一覧を常時表示する（折りたたみはしない）
   const isHls = isHlsUrl(item.url) ||
     (item.mimeHint ?? "").includes("mpegurl") ||
     (item.mimeHint ?? "").includes("m3u8");
 
   if (isHls) {
-    li.classList.add("media-item--hls");
-    li.title = "クリックして画質一覧を表示";
-    li.addEventListener("click", (e) => {
-      // DL ボタン・コピーボタンのクリックは伝播させない
-      if (e.target.closest(".dl-btn")) return;
-      toggleHlsAccordion(li, item);
-    });
+    renderHlsVariants(li, item);
   }
 
   // ── DASH アコーディオン（ステップ11） ──────────────────────────────────

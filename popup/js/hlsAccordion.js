@@ -1,19 +1,22 @@
 // popup/js/hlsAccordion.js — MimicVault
-// HLS バリアントアコーディオン toggleHlsAccordion
+// HLS バリアント一覧表示 renderHlsVariants
 
 "use strict";
 
-async function toggleHlsAccordion(li, item) {
-  // すでに展開済みなら折りたたむ
+/**
+ * HLS アイテムの画質一覧を取得して常時表示する（クリックでの開閉はしない）。
+ * buildItem.js から各 HLS アイテムの行を作った直後に呼ばれる。
+ */
+async function renderHlsVariants(li, item) {
+  // 二重呼び出し対策（通常は発生しないが念のため）
   const existing = li.nextElementSibling;
-  if (existing && existing.classList.contains("hls-variants")) {
-    existing.remove();
-    li.classList.remove("media-item--hls-open");
-    return;
-  }
+  if (existing && existing.classList.contains("hls-variants")) return;
 
-  // ローディング表示
-  li.classList.add("media-item--hls-open", "media-item--hls-loading");
+  // ローディング表示（取得できたら置き換える）
+  const loadingEl = document.createElement("div");
+  loadingEl.className = "hls-variants hls-variants--loading";
+  loadingEl.textContent = "画質を取得中…";
+  li.insertAdjacentElement("afterend", loadingEl);
 
   let result;
   try {
@@ -26,7 +29,7 @@ async function toggleHlsAccordion(li, item) {
     result = { ok: false, error: "send_failed" };
   }
 
-  li.classList.remove("media-item--hls-loading");
+  loadingEl.remove();
 
   if (!result?.ok) {
     if (result?.error === "not_master") {
