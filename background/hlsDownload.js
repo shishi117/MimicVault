@@ -90,7 +90,12 @@ async function downloadHlsSegments(mediaPlaylistUrl, pageURL, tabId) {
   async function worker() {
     while (nextIdx < segments.length) {
       const idx = nextIdx++;
-      const res = await fetch(segments[idx]);
+      const segUrl = segments[idx];
+      // Referer 未登録だとセグメントだけ素の fetch になり、anti-leech な
+      // 配信元（Referer/Origin チェックのある CDN 等）で 403 になる。
+      if (pageURL) pendingReferers.set(segUrl, pageURL);
+      const res = await fetch(segUrl);
+      pendingReferers.delete(segUrl);
       if (!res.ok) throw new Error(`セグメント ${idx} の取得失敗: HTTP ${res.status}`);
       const raw = await res.arrayBuffer();
 
