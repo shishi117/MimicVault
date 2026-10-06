@@ -29,12 +29,19 @@
   },
 
   "browser_action": {
-    "default_popup": "popup/popup.html",
     "default_icon": {
       "48": "icons/icon48.png"
     },
-    "default_title": "MimicVault",
+    "default_title": "MimicVault（クリックでサイドバーを開閉）",
     "default_badge_background_color": "#5f4dbc"
+  },
+
+  "sidebar_action": {
+    "default_panel": "popup/popup.html",
+    "default_icon": {
+      "48": "icons/icon48.png"
+    },
+    "default_title": "MimicVault"
   },
 
   "content_scripts": [
