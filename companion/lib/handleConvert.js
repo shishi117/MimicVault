@@ -25,7 +25,8 @@ const { FFMPEG, getDownloadsDir } = require("./ffmpeg");
  *   { requestId, ok: false, error }
  *
  * FFmpeg コマンド例:
- *   ffmpeg -headers "Referer: https://example.com/\r\nOrigin: https://example.com\r\nUser-Agent: Mozilla/5.0...\r\n"
+ *   ffmpeg -user_agent "Mozilla/5.0..."
+ *          -headers "Referer: https://example.com/\r\nOrigin: https://example.com\r\nAccept: *\/*\r\nSec-Fetch-Mode: cors\r\nSec-Fetch-Dest: empty\r\nSec-Fetch-Site: cross-site\r\n"
  *          -allowed_extensions ALL
  *          -i "https://cdn.example.com/stream/1080p.m3u8"
  *          -c copy "/Users/user/Downloads/stream.mp4"
@@ -33,37 +34,41 @@ const { FFMPEG, getDownloadsDir } = require("./ffmpeg");
  * -allowed_extensions ALL は .key ファイルなど m3u8 内で参照される拡張子を
  * すべて許可するために必要。FFmpeg はデフォルトで未知の拡張子を拒否する。
  *
- * FFmpeg のデフォルト User-Agent は "Lavf/x.y.z" であり、Referer しか
- * 送らないと一部 CDN の anti-leech 判定に弾かれ、m3u8 の代わりにエラー
- * ページ等が返って "Invalid data found when processing input" で失敗する。
- * そのため Referer に加えて Origin（Referer から導出）と、呼び出し元の
- * ブラウザの User-Agent も一緒に送ってブラウザからのリクエストに近づける。
+ * FFmpeg は常に自前の User-Agent ヘッダー（既定 "Lavf/x.y.z"）を送るため、
+ * -headers に "User-Agent: ..." を混ぜると2本の User-Agent ヘッダーが
+ * 送られてしまい上書きにならない。そのため専用の -user_agent オプションを
+ * 使う。また一部 CDN の anti-leech は Referer/Origin だけでなく、実ブラウザの
+ * fetch() が付ける Sec-Fetch-* 等の有無もチェックしてくるため、ブラウザの
+ * DevTools で確認できた実際のリクエストに合わせて固定値で付与する。
  *
  * @param {object} msg
  * @param {string} msg.requestId   - リクエスト ID（進捗/完了通知に添付）
  * @param {string} msg.playlistUrl - HLS Master / Media Playlist の URL
  * @param {string} [msg.referer]   - Referer ヘッダーとして付与するページ URL
- * @param {string} [msg.userAgent] - User-Agent ヘッダーとして付与する値
+ * @param {string} [msg.userAgent] - -user_agent に渡す User-Agent 値
  * @param {string} msg.outputName  - 保存ファイル名（例: "stream.mp4"）
  */
 
 /**
- * Referer / Origin / User-Agent から ffmpeg -headers 用の文字列を組み立てる。
- * 何も渡されなければ "" を返す（= -headers を付けない）。
+ * Referer / Origin とブラウザ fetch() 標準ヘッダーから
+ * ffmpeg -headers 用の文字列を組み立てる。
  */
-function buildFfmpegHeaders(referer, userAgent) {
+function buildFfmpegHeaders(referer) {
   let origin = "";
   if (referer) {
     try { origin = new URL(referer).origin; } catch (_) { /* 不正 URL は無視 */ }
   }
 
   const lines = [
-    ...(referer   ? [`Referer: ${referer}`]      : []),
-    ...(origin    ? [`Origin: ${origin}`]        : []),
-    ...(userAgent ? [`User-Agent: ${userAgent}`] : []),
+    ...(referer ? [`Referer: ${referer}`] : []),
+    ...(origin  ? [`Origin: ${origin}`]   : []),
+    "Accept: */*",
+    "Sec-Fetch-Mode: cors",
+    "Sec-Fetch-Dest: empty",
+    "Sec-Fetch-Site: cross-site",
   ];
 
-  return lines.length ? lines.join("\r\n") + "\r\n" : "";
+  return lines.join("\r\n") + "\r\n";
 }
 
 async function handleConvert({ requestId, playlistUrl, referer, userAgent, outputName }) {
@@ -79,14 +84,14 @@ async function handleConvert({ requestId, playlistUrl, referer, userAgent, outpu
     .replace(/[/\\:*?"<>|]/g, "_");
   const outputPath = path.join(downloadsDir, safeOutputName);
 
-  const headers = buildFfmpegHeaders(referer, userAgent);
-
   // ── FFmpeg 引数を構築 ────────────────────────────────────────────────────
   const args = [
     "-y",   // 既存ファイルを上書き（確認なし）
-    // Referer / Origin / User-Agent ヘッダー（セグメント・キーファイルの
+    // User-Agent は専用オプションで上書き（-headers に混ぜると重複する）
+    ...(userAgent ? ["-user_agent", userAgent] : []),
+    // Referer / Origin / Sec-Fetch-* ヘッダー（セグメント・キーファイルの
     // リクエストにも適用される）
-    ...(headers ? ["-headers", headers] : []),
+    "-headers", buildFfmpegHeaders(referer),
     // .key など m3u8 が参照するすべての拡張子を許可
     "-allowed_extensions", "ALL",
     // リモートのプレイリストのみ扱うため file は許可しない。
