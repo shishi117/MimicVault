@@ -1,7 +1,7 @@
 # MimicVault
 
 ブラウザの通信からメディアを検出してダウンロードする Firefox 拡張機能。
-HLS→MP4 変換や mux などは Native Messaging 経由の companion アプリが担当します（`companion/README.md` 参照）。
+HLS→MP4 変換や mux などは Native Messaging 経由の companion アプリが担当します（`docs/コンパニオンアプリ/README.md` 参照）。
 
 ## 対応規格
 

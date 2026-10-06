@@ -1,0 +1,50 @@
+# MimicVault — Companion App
+
+FFmpeg を使って HLS → MP4 変換、DASH mux、収集ストリームの remux を行うための Native Messaging companion app です。
+（対応コマンド: `ping` / `version` / `convert`=HLS→MP4 / `mux`=映像+音声→MP4 / `remux`=結合済み断片→MP4）
+
+> **旧 Media Snatcher からの移行**: Native Messaging ホスト名が `media_snatcher` → `mimic_vault` に変わりました。
+> 以前 companion をインストールしている場合は、古いホスト登録を削除（下記「アンインストール」参照）してから
+> `install.sh` / `install.bat` を再実行してください。再登録後は Firefox の再起動が必要です。
+
+配布形態は2通りあります。
+
+- **スクリプト版**（開発・自分用）: `node app.js` を .bat/.sh ラッパー経由で実行。利用者に Node.js が必要。
+  → セットアップ手順は [初期設定手順(スクリプト)/companion-script-install.md](../初期設定手順(スクリプト)/companion-script-install.md) 参照。
+- **exe版**（他人に配布）: `app.js` を単一 exe にコンパイルし、`ffmpeg.exe` を同梱。**利用者に Node.js も FFmpeg も不要**。
+  → セットアップ手順は [初期設定手順(exe)/companion-exe-install.md](../初期設定手順(exe)/companion-exe-install.md) 参照。
+
+---
+
+## インストール後
+
+Firefox を再起動すると、拡張機能のポップアップ右上に companion 接続インジケータ（`⚡`）が表示されます。
+
+- `⚡` 緑: companion 接続済み — HLS ダウンロードは FFmpeg 経由で MP4 に変換されます
+- `○` グレー: companion 未接続 — 従来通り `.ts` ファイルとして保存されます
+
+## companion が行うこと
+
+- HLS プレイリスト URL を受け取り、FFmpeg で MP4 に変換
+- 変換済みファイルをユーザーの **Downloads フォルダ**に保存
+- 変換進捗（0%〜100%）を拡張機能に通知
+
+## companion が行わないこと
+
+- ネットワーク外（インターネット以外）へのデータ送信
+- 変換完了後のファイル以外のデータ保持
+
+## アンインストール
+
+### macOS
+
+```bash
+rm ~/Library/Application\ Support/Mozilla/NativeMessagingHosts/mimic_vault.json
+```
+
+### Windows
+
+```
+reg delete "HKCU\Software\Mozilla\NativeMessagingHosts\mimic_vault" /f
+del "%APPDATA%\mimic_vault\native-manifest.json"
+```

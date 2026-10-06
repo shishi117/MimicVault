@@ -144,7 +144,7 @@ deploy\install-policy.bat ["<Firefox>\distribution"]
    - Windows: `%APPDATA%\MimicVault\`
 
 > companion アプリ（Native Messaging / FFmpeg）のインストール・アンインストールは
-> `companion/README.md` を参照してください。拡張機能とは別管理です。
+> `docs/コンパニオンアプリ/README.md` を参照してください。拡張機能とは別管理です。
 
 ---
 

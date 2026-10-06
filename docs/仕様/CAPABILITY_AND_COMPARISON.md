@@ -21,7 +21,7 @@ MimicVault は `webRequest`(ブラウザが発行する HTTP 通信を監視す�
 
 Native Messaging(ブラウザ拡張がローカルのネイティブアプリとやり取りする仕組み)経由で
 FFmpeg を呼び出す別プロセス(`companion/app.js`)。対応コマンドは3つのみ
-(`companion/README.md`, `companion/lib/handleMessage.js`)。
+(`docs/コンパニオンアプリ/README.md`, `companion/lib/handleMessage.js`)。
 
 - `convert`:HLS→MP4変換
 - `mux`:DASHの映像+音声トラックを結合してMP4化
