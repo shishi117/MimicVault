@@ -19,11 +19,14 @@
  *
  * @param {string} mediaPlaylistUrl - HLS Media Playlist URL
  * @param {string} pageURL          - Referer 用の元ページ URL
+ * @param {number} [tabId]          - ファイル名にタブタイトルを使うための元タブ ID
  * @returns {Promise<{ ok: true, downloadId: null, filePath: string } | { ok: false, error: string }>}
  */
-async function downloadHlsViaCompanion(mediaPlaylistUrl, pageURL) {
-  // ファイル名（.mp4 拡張子）を決める
-  const outputName = applyFilenameTemplate(inferStem(mediaPlaylistUrl), "mp4");
+async function downloadHlsViaCompanion(mediaPlaylistUrl, pageURL, tabId) {
+  // ファイル名（.mp4 拡張子）を決める。URL は多くの配信元で "video.m3u8" 等の
+  // 定型名なので、タブの表示タイトルが取れればそちらを優先する。
+  const stem = await inferTitleStem(mediaPlaylistUrl, tabId);
+  const outputName = applyFilenameTemplate(stem, "mp4");
 
   // companion に変換を依頼し、進捗を popup に中継する
   // navigator.userAgent も渡す: ffmpeg はデフォルトで "Lavf/x.y.z" という

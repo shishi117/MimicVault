@@ -167,7 +167,7 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
             // 長時間かかるため await しない。companion が Downloads に直接書き出す。
             // 進捗/失敗は HLS_DOWNLOAD_PROGRESS 経路で表面化する。
             // 既知の簡略化: 複数 HLS があると FFmpeg が同時起動する（通常1本なので許容）。
-            downloadHlsViaCompanion(item.url, item.pageURL || "")
+            downloadHlsViaCompanion(item.url, item.pageURL || "", allTabId)
               .catch(err => console.warn("[全DL] HLS 変換失敗:", item.url, err.message));
             converting++;
           } else {

@@ -19,6 +19,22 @@ function inferStem(url) {
 }
 
 /**
+ * ファイル名のステムを決める。タブの表示タイトルが取れればそれを使い、
+ * 取れない場合（タブが閉じている等）は URL ベースの inferStem にフォールバックする。
+ * CDN によっては URL が "video.m3u8" 等の定型名で、URL だけではサイト固有の
+ * タイトルを拾えないため、タブのタイトルを優先する。
+ */
+async function inferTitleStem(url, tabId) {
+  if (tabId != null) {
+    try {
+      const tab = await browser.tabs.get(tabId);
+      if (tab?.title) return tab.title;
+    } catch (_) { /* タブが閉じている等は無視 */ }
+  }
+  return inferStem(url);
+}
+
+/**
  * URL と MIME から拡張子文字列（ドットなし）を返す。
  */
 function inferExt(url, mimeHint) {

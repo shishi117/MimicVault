@@ -10,7 +10,7 @@ async function downloadHlsSegments(mediaPlaylistUrl, pageURL, tabId) {
   // fetch / master 判定 / パースは不要。失敗時のみ下の非 companion フローへ落ちる。
   if (companionPort) {
     try {
-      return await downloadHlsViaCompanion(mediaPlaylistUrl, pageURL);
+      return await downloadHlsViaCompanion(mediaPlaylistUrl, pageURL, tabId);
     } catch (err) {
       console.warn("[Companion] HLS 変換失敗、フォールバックへ:", err.message);
     }
@@ -130,13 +130,41 @@ async function downloadHlsSegments(mediaPlaylistUrl, pageURL, tabId) {
     offset += buf.byteLength;
   }
 
+  // URL は多くの配信元で "video.m3u8" 等の定型名なので、タブの表示タイトルが
+  // 取れればそちらを優先する（以降の MP4/TS どちらの保存でも共通で使う）。
+  const hlsStem = await inferTitleStem(mediaPlaylistUrl, tabId);
+
+  // ── 4.5 companion 接続時は combined を remux して MP4 化を試みる ───────────
+  // downloadHlsViaCompanion（FFmpeg が自前で URL を直接 fetch する経路）が
+  // anti-leech な配信元で失敗してここに落ちてきた場合でも、ブラウザの fetch
+  // （Referer 注入済み）で取得済みの combined はそのまま companion に渡せば
+  // FFmpeg はローカルファイルを読むだけになり、ネットワーク起因の失敗を避けられる。
+  if (companionPort) {
+    const outputName = applyFilenameTemplate(hlsStem, "mp4");
+    try {
+      let bin = "";
+      for (let i = 0; i < combined.length; i++) bin += String.fromCharCode(combined[i]);
+      const inputB64 = btoa(bin);
+      const result = await sendToCompanion(
+        { type: "remux", inputB64, outputName },
+        (prog) => browser.runtime.sendMessage({
+          type: "HLS_DOWNLOAD_PROGRESS", url: mediaPlaylistUrl,
+          current: prog.percent ?? 0, total: 100, converting: true,
+        }).catch(() => {})
+      );
+      if (result.ok) return { ok: true, downloadId: null, filePath: result.filePath };
+      console.warn("[HLS] remux 失敗、.ts 保存へ:", result.error);
+    } catch (err) {
+      console.warn("[HLS] remux 例外、.ts 保存へ:", err.message);
+    }
+  }
+
   const blob    = new Blob([combined], { type: "video/mp2t" });
   const blobUrl = URL.createObjectURL(blob);
 
   // ── 5. ダウンロード開始 ───────────────────────────────────────────────────
   // HLS セグメント結合物は必ず MPEG-TS コンテナなので拡張子を .ts に強制する。
   // playlist URL が video.mp4?format=m3u8 のような形でも誤った .mp4 にならない。
-  const hlsStem = inferStem(mediaPlaylistUrl);
   const filename = applyFilenameTemplate(hlsStem, "ts");
 
   let downloadId;
