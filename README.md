@@ -18,8 +18,16 @@ HLS→MP4 変換や mux などは Native Messaging 経由の companion アプリ
 ### MSS（Smooth Streaming）の制限
 動的パッケージャー（同じ `.ism` から DASH も配信する Unified Streaming / Azure / IIS / Wowza 等）に対応します。
 `.ism/Manifest` を検出すると既知の DASH 記法（`.ism/.mpd`、`manifest(format=mpd-time-csf)`、`manifest.mpd`）を
-順に試し、MPD を返す URL を使って既存の DASH 処理に委譲します。**静的 Smooth（断片のみで DASH 再パッケージ
-非対応）は未対応**で、この場合は DASH 解析失敗として表示されます。
+順に試し、MPD を返す URL を使って既存の DASH 処理に委譲します。
+
+どの記法も該当しない**静的 Smooth（断片のみで DASH 再パッケージ非対応）**は、`.ism/Manifest` の XML を
+直接パースし、`CodecPrivateData` から fMP4 init セグメントを自前生成して DASH と同じダウンロード経路に
+乗せます（`background/mssManifestParse.js` / `background/mssInitSegment.js`）。
+
+- 対応コーデックは **映像 H.264(AVC1) + 音声 AAC系(AACL/AACH等)のみ**。HEVC/VC-1/WMA等は未対応として
+  エラー表示されます。
+- **PlayReady 等の暗号化（マニフェストの `Protection` 要素）は未対応**で、検出時に明示エラーを返します
+  （HLSのSAMPLE-AESと同じ扱い）。
 
 ### 収集ストリーム（汎用 MSE）の制限
 `.mpd`/`.m3u8` を露出しないプレイヤーが取得する fMP4 断片（`.m4s`/`.cmf*` + `init`）を、ディレクトリ単位で

@@ -7,7 +7,7 @@ async function downloadDashTrack({ rep, mpdUrl, mpdDuration, trackType, pageURL 
   const { id, bandwidth, segInfo } = rep;
 
   // ── セグメント URL を展開 ──────────────────────────────────────────────
-  const { initUrl, segUrls } = expandSegmentUrls(segInfo, id, bandwidth, mpdDuration);
+  const { initUrl, initBytes, segUrls } = expandSegmentUrls(segInfo, id, bandwidth, mpdDuration);
 
   if (segUrls.length === 0) {
     return { ok: false, error: "no_segments" };
@@ -28,9 +28,12 @@ async function downloadDashTrack({ rep, mpdUrl, mpdDuration, trackType, pageURL 
 
   sendProgress(0, total);
 
-  // ── init セグメントを先頭に fetch（fMP4 の moov ボックス）────────────
+  // ── init セグメントを先頭に積む（fMP4 の moov ボックス）──────────────
+  // MSS(静的Smooth)は initBytes(自前生成済み)を優先し、fetch しない。
   let initBuf = null;
-  if (initUrl) {
+  if (initBytes) {
+    initBuf = initBytes;
+  } else if (initUrl) {
     if (pageURL) pendingReferers.set(initUrl, pageURL);
     try {
       const res = await fetch(initUrl);

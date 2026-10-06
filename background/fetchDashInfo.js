@@ -28,8 +28,8 @@ const _mssDashUrlCache = new Map();
 /**
  * MSS(.ism/Manifest) URL を、MPD として解釈できる DASH URL に解決する。
  * 既知の DASH 記法（ismToDashCandidates）を順に fetch し、`<MPD` を含む最初の
- * 候補を返す。どれも該当しなければ先頭候補を返す（＝後段で解析失敗し
- * 「静的 Smooth 未対応」として表面化する）。
+ * 候補を返す。どれも該当しなければ null を返す（＝動的パッケージャーではない
+ * ので、呼び出し元が静的MSSとして .ism/Manifest を直接パースする）。
  */
 async function resolveMssDashUrl(ismUrl, pageURL) {
   if (_mssDashUrlCache.has(ismUrl)) return _mssDashUrlCache.get(ismUrl);
@@ -50,27 +50,36 @@ async function resolveMssDashUrl(ismUrl, pageURL) {
       pendingReferers.delete(cand);
     }
   }
-  _mssDashUrlCache.set(ismUrl, candidates[0]);
-  return candidates[0];
+  _mssDashUrlCache.set(ismUrl, null);
+  return null;
 }
 
-async function fetchDashInfo(url, pageURL) {
-  // MSS は .ism/Manifest のまま届くので、まず DASH(MPD) URL に解決する
-  if (isMssUrl(url)) url = await resolveMssDashUrl(url, pageURL);
-
+/** 指定URLをテキストとしてfetchする(Referer設定/後始末込み)共通ヘルパー */
+async function fetchTextWithReferer(url, pageURL) {
   if (pageURL) pendingReferers.set(url, pageURL);
-
-  let text;
   try {
     const res = await fetch(url);
     pendingReferers.delete(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    text = await res.text();
+    return await res.text();
   } catch (err) {
     pendingReferers.delete(url);
     throw err;
   }
+}
 
+async function fetchDashInfo(url, pageURL) {
+  if (isMssUrl(url)) {
+    const dashUrl = await resolveMssDashUrl(url, pageURL);
+    if (dashUrl === null) {
+      // 動的パッケージャーではない(静的MSS) → .ism/Manifest を直接パースする
+      const text = await fetchTextWithReferer(url, pageURL);
+      return parseIsmManifest(text, url);
+    }
+    url = dashUrl;
+  }
+
+  const text = await fetchTextWithReferer(url, pageURL);
   return parseMpd(text, url);
 }
 
