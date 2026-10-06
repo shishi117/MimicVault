@@ -15,7 +15,11 @@ async function processNewSegments(session, parsed) {
     const seqNum = parsed.mediaSequence + i;
 
     try {
+      // Referer 未登録だとセグメントだけ素の fetch になり、anti-leech な
+      // 配信元（Referer/Origin チェックのある CDN 等）で 403 になる。
+      if (session.pageURL) pendingReferers.set(segUrl, session.pageURL);
       const segRes = await fetch(segUrl);
+      pendingReferers.delete(segUrl);
       if (!segRes.ok) throw new Error(`HTTP ${segRes.status}`);
       let buf = await segRes.arrayBuffer();
 
