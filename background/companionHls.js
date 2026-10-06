@@ -26,11 +26,15 @@ async function downloadHlsViaCompanion(mediaPlaylistUrl, pageURL) {
   const outputName = applyFilenameTemplate(inferStem(mediaPlaylistUrl), "mp4");
 
   // companion に変換を依頼し、進捗を popup に中継する
+  // navigator.userAgent も渡す: ffmpeg はデフォルトで "Lavf/x.y.z" という
+  // 非ブラウザ UA を送るため、Referer しかないと CDN の anti-leech に
+  // ブロックされ m3u8 の代わりにエラーページを返されることがある。
   const result = await sendToCompanion(
     {
       type:        "convert",
       playlistUrl: mediaPlaylistUrl,
       referer:     pageURL || "",
+      userAgent:   navigator.userAgent,
       outputName,
     },
     (progressMsg) => {
