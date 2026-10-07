@@ -8,6 +8,16 @@
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   switch (message.type) {
 
+    // ページに重ねて表示する固定幅パネル（content/sidePanel.js が作る iframe）が
+    // 自分の属するタブIDを知るために使う。iframe は content script が注入した
+    // ページの子フレームなので、browser.tabs.query({currentWindow:true}) 等の
+    // 「現在のウィンドウ／タブ」解決に頼らず、メッセージ送信元（sender.tab）から
+    // 直接取得する方が確実。
+    case "GET_MY_TAB_ID": {
+      sendResponse({ tabId: sender.tab?.id ?? null });
+      return true;
+    }
+
     case "MEDIA_FOUND": {
       const tabId = sender.tab?.id;
       if (!tabId) break;
