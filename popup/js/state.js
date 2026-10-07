@@ -15,6 +15,7 @@ const elLiveBanner = document.getElementById("live-banner");
 const filterTabs = document.querySelectorAll(".filter-tab");
 const elCompanionIndicator = document.getElementById("companion-indicator");
 const elSettingsBtn        = document.getElementById("settings-btn");
+const elClosePanelBtn      = document.getElementById("close-panel-btn");
 const elDlAllBtn           = document.getElementById("dl-all-btn");
 // ブックマーク一括DLパネル
 const elBookmarkBtn        = document.getElementById("bookmark-btn");

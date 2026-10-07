@@ -32,16 +32,8 @@
     "default_icon": {
       "48": "icons/icon48.png"
     },
-    "default_title": "MimicVault（クリックでサイドバーを開閉）",
+    "default_title": "MimicVault（クリックでパネルを開閉）",
     "default_badge_background_color": "#5f4dbc"
-  },
-
-  "sidebar_action": {
-    "default_panel": "popup/popup.html",
-    "default_icon": {
-      "48": "icons/icon48.png"
-    },
-    "default_title": "MimicVault"
   },
 
   "content_scripts": [
@@ -55,10 +47,15 @@
       "js": [
         "content/mediaDetect.js",
         "content/thumbnail.js",
-        "content/observe.js"
+        "content/observe.js",
+        "content/sidePanel.js"
       ],
       "run_at": "document_idle"
     }
+  ],
+
+  "web_accessible_resources": [
+    "popup/*"
   ],
 
   "background": {
