@@ -128,12 +128,41 @@ async function handleConvert({ requestId, playlistUrl, referer, userAgent, outpu
       return;
     }
 
+    // ── 無通信タイムアウト ────────────────────────────────────────────────
+    // この convert は URL を直接 fetch するため、anti-leech な配信元で接続が
+    // 確立だけして応答が返らず止まることがある（TCP は繋がるが HTTP 応答が
+    // 来ない等）。その場合 ffmpeg の stderr には何も出ず close/error も発火
+    // しないため、タイムアウトが無いと呼び出し元が永久に応答を待ち続けて
+    // しまう（popup の進捗表示が "…" のまま固まる）。stderr が一定時間
+    // 無通信なら強制終了してエラーを返す（呼び出し元はこれを受けて
+    // ブラウザ fetch 経由のフォールバックに切り替えられる）。
+    const STALL_TIMEOUT_MS = 20_000;
+    let settled = false; // kill() が close/error を誘発しての二重送信を防ぐ
+    let stallTimer = setTimeout(onStall, STALL_TIMEOUT_MS);
+
+    function resetStallTimer() {
+      clearTimeout(stallTimer);
+      stallTimer = setTimeout(onStall, STALL_TIMEOUT_MS);
+    }
+
+    function onStall() {
+      if (settled) return;
+      settled = true;
+      ffmpeg.kill("SIGKILL");
+      sendMessage({
+        requestId, ok: false,
+        error: `ffmpeg が ${STALL_TIMEOUT_MS / 1000}秒間応答無しのため中断しました（配信元からの応答が無い可能性があります）`,
+      });
+      resolve();
+    }
+
     // FFmpeg の進捗は stderr に出力される
     let stderrBuf      = "";
     let durationSec    = 0;
     let lastPercentage = -1;
 
     ffmpeg.stderr.on("data", (chunk) => {
+      resetStallTimer();
       stderrBuf += chunk.toString();
 
       // 総再生時間を1回だけ取得（Duration: hh:mm:ss.xx）
@@ -169,6 +198,9 @@ async function handleConvert({ requestId, playlistUrl, referer, userAgent, outpu
     });
 
     ffmpeg.on("close", (code) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(stallTimer);
       if (code !== 0) {
         const errDetail = stderrBuf.slice(-300); // エラーの最後の部分を返す
         sendMessage({
@@ -186,6 +218,9 @@ async function handleConvert({ requestId, playlistUrl, referer, userAgent, outpu
     });
 
     ffmpeg.on("error", (err) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(stallTimer);
       const msg = err.code === "ENOENT"
         ? "ffmpeg が見つかりません。PATH に ffmpeg を追加してください。"
         : `ffmpeg の実行エラー: ${err.message}`;
