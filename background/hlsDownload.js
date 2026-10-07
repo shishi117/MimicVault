@@ -149,19 +149,16 @@ async function downloadHlsSegments(mediaPlaylistUrl, pageURL, tabId) {
     return { ok: false, error: err.message };
   }
 
-  // Blob URL はダウンロード完了後に解放（onChanged で revoke）
-  // 安全のため最大 10 分のタイムアウトも設ける
-  const revokeTimer = setTimeout(() => URL.revokeObjectURL(blobUrl), 10 * 60 * 1000);
+  // browser.downloads.download() は書き込み開始を返すだけで、実際にディスクへ
+  // 書き終わるのは非同期。ここで実際の完了（または中断）を待たずに ok:true を
+  // 返すと、ポップアップ側は「✓完了」と表示するのに実ファイルは後から失敗して
+  // 存在しない、という事故になる。companion の有無に関わらず必ず実完了を待つ。
+  const tsDone = await awaitDownloadComplete(downloadId);
+  URL.revokeObjectURL(blobUrl);
 
-  browser.downloads.onChanged.addListener(function onDlChanged(delta) {
-    if (delta.id !== downloadId) return;
-    const state = delta.state?.current;
-    if (state === "complete" || state === "interrupted") {
-      clearTimeout(revokeTimer);
-      URL.revokeObjectURL(blobUrl);
-      browser.downloads.onChanged.removeListener(onDlChanged);
-    }
-  });
+  if (!tsDone.ok) {
+    return { ok: false, error: tsDone.error ?? "download_failed" };
+  }
 
   // ── 4.6 companion 接続時は、保存した .ts をローカルファイルのまま MP4 に remux ──
   // downloadHlsViaCompanion（FFmpeg が自前で URL を直接 fetch する経路）が
@@ -175,29 +172,26 @@ async function downloadHlsSegments(mediaPlaylistUrl, pageURL, tabId) {
   // 代わりに browser.downloads でディスクに書き出した実ファイルのパスを渡し、
   // companion 側はそのパスを直接 ffmpeg -i に渡す（バイト列のやり取りをしない）。
   if (companionPort) {
-    const tsDone = await awaitDownloadComplete(downloadId);
-    if (tsDone.ok) {
-      try {
-        const [info] = await browser.downloads.search({ id: downloadId });
-        const inputPath = info?.filename;
-        if (inputPath) {
-          const outputName = applyFilenameTemplate(hlsStem, "mp4");
-          const result = await sendToCompanion(
-            { type: "remux", inputPath, outputName },
-            (prog) => browser.runtime.sendMessage({
-              type: "HLS_DOWNLOAD_PROGRESS", url: mediaPlaylistUrl,
-              current: prog.percent ?? 0, total: 100, converting: true,
-            }).catch(() => {})
-          );
-          if (result.ok) {
-            browser.downloads.removeFile(downloadId).catch(() => {});
-            return { ok: true, downloadId: null, filePath: result.filePath };
-          }
-          console.warn("[HLS] remux 失敗、.ts のまま保持:", result.error);
+    try {
+      const [info] = await browser.downloads.search({ id: downloadId });
+      const inputPath = info?.filename;
+      if (inputPath) {
+        const outputName = applyFilenameTemplate(hlsStem, "mp4");
+        const result = await sendToCompanion(
+          { type: "remux", inputPath, outputName },
+          (prog) => browser.runtime.sendMessage({
+            type: "HLS_DOWNLOAD_PROGRESS", url: mediaPlaylistUrl,
+            current: prog.percent ?? 0, total: 100, converting: true,
+          }).catch(() => {})
+        );
+        if (result.ok) {
+          browser.downloads.removeFile(downloadId).catch(() => {});
+          return { ok: true, downloadId: null, filePath: result.filePath };
         }
-      } catch (err) {
-        console.warn("[HLS] remux 例外、.ts のまま保持:", err.message);
+        console.warn("[HLS] remux 失敗、.ts のまま保持:", result.error);
       }
+    } catch (err) {
+      console.warn("[HLS] remux 例外、.ts のまま保持:", err.message);
     }
   }
 
