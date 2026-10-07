@@ -57,14 +57,11 @@ function renderList() {
   elClearBtn.classList.toggle("hidden", !hasAny);
 
   if (hasAny) {
-    elBadge.textContent = String(allItems.length);
-    elBadge.classList.remove("hidden");
     elCount.textContent = items.length === allItems.length
       ? `${allItems.length} 件検出`
       : `${items.length} / ${allItems.length} 件`;
     if (elDlAllBtn) elDlAllBtn.classList.remove("hidden");
   } else {
-    elBadge.classList.add("hidden");
     elCount.textContent = "0 件検出";
     if (elDlAllBtn) elDlAllBtn.classList.add("hidden");
   }

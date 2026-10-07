@@ -7,7 +7,6 @@
 const elEmpty    = document.getElementById("state-empty");
 const elNoMatch  = document.getElementById("state-no-match");
 const elList     = document.getElementById("media-list");
-const elBadge    = document.getElementById("badge");
 const elCount    = document.getElementById("count-label");
 const elToolbar  = document.getElementById("toolbar");
 const elClearBtn = document.getElementById("clear-btn");
