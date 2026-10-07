@@ -88,7 +88,7 @@ function buildItem(item) {
     (item.mimeHint ?? "").includes("m3u8");
 
   if (isHls) {
-    renderHlsVariants(li, item);
+    renderHlsVariants(li, item, dlBtn);
   }
 
   // ── DASH アコーディオン（ステップ11） ──────────────────────────────────

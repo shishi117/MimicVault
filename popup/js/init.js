@@ -5,7 +5,7 @@
 
 // ─── メイン ───────────────────────────────────────────────────────────────────
 /**
- * サイドバーは（ポップアップと違い）タブを切り替えても閉じずに残り続ける。
+ * このパネルは（ポップアップと違い）タブを切り替えても閉じずに残り続ける。
  * そのため一度きりのセットアップ（init）と、表示中タブが変わるたびに
  * やり直す読み込み（loadActiveTab）を分離する。
  */
@@ -33,8 +33,15 @@ async function init() {
       browser.runtime.openOptionsPage().catch(err => {
         console.error("[popup] openOptionsPage failed:", err);
       });
-      // ポップアップ版の名残: サイドバーでは window.close() は何もしない
-      window.close();
+      // options ページを開いたらこのパネルは閉じて UX をスムーズに
+      browser.runtime.sendMessage({ type: "CLOSE_PANEL" }).catch(() => {});
+    });
+  }
+
+  // ページに重ねて表示する固定幅パネルを閉じる
+  if (elClosePanelBtn) {
+    elClosePanelBtn.addEventListener("click", () => {
+      browser.runtime.sendMessage({ type: "CLOSE_PANEL" }).catch(() => {});
     });
   }
 
@@ -58,7 +65,7 @@ async function init() {
 
 /**
  * 現在アクティブなタブの検出済みメディア一覧・ライブ録画状態を読み込んで表示する。
- * サイドバーでタブを切り替えた時にも呼び直される。
+ * パネルを開いたままタブを切り替えた時にも呼び直される。
  */
 async function loadActiveTab() {
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
@@ -96,7 +103,7 @@ async function loadActiveTab() {
 }
 
 /**
- * サイドバーは開いたままタブを切り替えられるため、アクティブタブが変わるたびに
+ * このパネルは開いたままタブを切り替えられるため、アクティブタブが変わるたびに
  * loadActiveTab をやり直して表示を同期する（ポップアップは毎回作り直されるため不要だった）。
  * 他ウィンドウでのタブ切り替えで無駄に再読み込みしないよう、自ウィンドウの
  * イベントだけに絞る。
