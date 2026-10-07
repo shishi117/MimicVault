@@ -42,6 +42,23 @@ async function startHlsSegmentDownload(item, variantUrl, btn) {
   hlsDownloadStates.set(variantUrl, hds);
   applyHlsDownloadButtonState(btn, hds);
 
+  // HLS_DOWNLOAD_PROGRESS のブロードキャストは、ページに重ねるパネル
+  // （content script 注入の iframe）には届かないことがある。そのため
+  // background の hlsProgressState を直接ポーリングして補う
+  // （background/constants.js の hlsProgressState 参照）。
+  const pollTimer = setInterval(async () => {
+    if (hds.state !== "fetching") return;
+    let progress;
+    try {
+      progress = await browser.runtime.sendMessage({ type: "GET_HLS_PROGRESS", url: variantUrl });
+    } catch (_) { return; }
+    if (!progress || hds.state !== "fetching") return;
+    hds.current    = progress.current;
+    hds.total      = progress.total;
+    hds.converting = progress.converting ?? false;
+    applyHlsDownloadButtonState(btn, hds);
+  }, 700);
+
   let result;
   try {
     result = await browser.runtime.sendMessage({
@@ -52,6 +69,8 @@ async function startHlsSegmentDownload(item, variantUrl, btn) {
     });
   } catch (err) {
     result = { ok: false, error: err.message };
+  } finally {
+    clearInterval(pollTimer);
   }
 
   if (result?.ok) {

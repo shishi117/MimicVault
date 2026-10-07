@@ -31,3 +31,14 @@ const MIN_CONTENT_LENGTH = 1024;
  */
 const pendingReferers = new Map();
 
+// ─── HLS 進捗の問い合わせ用キャッシュ ────────────────────────────────────────
+/**
+ * runtime.sendMessage によるブロードキャスト（HLS_DOWNLOAD_PROGRESS）が、
+ * content script が注入した iframe パネルには届かないことがある
+ * （popup/サイドバー等の通常の拡張ページには届く）。そのため進捗の最新値を
+ * ここにも保持しておき、popup/js/hlsDownload.js が GET_HLS_PROGRESS で
+ * 定期的に問い合わせて補完できるようにする。
+ * key: media playlist / variant URL, value: { current, total, converting }
+ */
+const hlsProgressState = new Map();
+
