@@ -5,9 +5,11 @@
 
 // ─── メイン ───────────────────────────────────────────────────────────────────
 /**
- * このパネルは（ポップアップと違い）タブを切り替えても閉じずに残り続ける。
- * そのため一度きりのセットアップ（init）と、表示中タブが変わるたびに
- * やり直す読み込み（loadActiveTab）を分離する。
+ * このパネルは content script（content/sidePanel.js）がページごとに埋め込む
+ * iframe の中身であり、1タブにつき1インスタンスが存在する。そのため
+ * ポップアップ/サイドバー時代と違い「アクティブなタブ」を自分で探す必要はなく、
+ * 自分が埋め込まれているタブ＝表示対象のタブで固定（ページを閉じたり
+ * 再読み込みしたりすれば iframe ごと作り直される）。
  */
 async function init() {
   // イベント登録（一度だけでよいもの）
@@ -60,22 +62,31 @@ async function init() {
   await loadUserSettings();
 
   await loadActiveTab();
-  watchActiveTabChanges();
 }
 
 /**
- * 現在アクティブなタブの検出済みメディア一覧・ライブ録画状態を読み込んで表示する。
- * パネルを開いたままタブを切り替えた時にも呼び直される。
+ * 自分が埋め込まれているタブの検出済みメディア一覧・ライブ録画状態を
+ * 読み込んで表示する。
  */
 async function loadActiveTab() {
-  const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
-  if (!tab) return;
-  currentTabId = tab.id;
+  // iframe 自身は browser.tabs.query({currentWindow:true}) 等の「現在の
+  // ウィンドウ／タブ」解決に乗らない（ページに埋め込まれた子フレームのため）
+  // ので、background にメッセージを送って sender.tab から自分のタブIDを
+  // 教えてもらう。
+  let tabId;
+  try {
+    const res = await browser.runtime.sendMessage({ type: "GET_MY_TAB_ID" });
+    tabId = res?.tabId;
+  } catch (_) {
+    tabId = null;
+  }
+  if (tabId == null) return;
+  currentTabId = tabId;
 
   try {
     const res = await browser.runtime.sendMessage({
       type: "GET_MEDIA_LIST",
-      tabId: tab.id,
+      tabId,
     });
     allItems = res?.items ?? [];
   } catch (_) {
@@ -100,25 +111,6 @@ async function loadActiveTab() {
   renderList();
   requestThumbnails(currentTabId);
   loadMediaMeta();  // DASH/HLS の方式・長さ・結合後サイズを先読みして再描画
-}
-
-/**
- * このパネルは開いたままタブを切り替えられるため、アクティブタブが変わるたびに
- * loadActiveTab をやり直して表示を同期する（ポップアップは毎回作り直されるため不要だった）。
- * 他ウィンドウでのタブ切り替えで無駄に再読み込みしないよう、自ウィンドウの
- * イベントだけに絞る。
- */
-async function watchActiveTabChanges() {
-  const win = await browser.windows.getCurrent();
-
-  browser.tabs.onActivated.addListener((activeInfo) => {
-    if (activeInfo.windowId === win.id) loadActiveTab();
-  });
-  browser.tabs.onUpdated.addListener((tabId, changeInfo, updatedTab) => {
-    if (tabId === currentTabId && changeInfo.status === "complete" && updatedTab.windowId === win.id) {
-      loadActiveTab();
-    }
-  });
 }
 
 /**
