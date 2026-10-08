@@ -12,14 +12,20 @@ function getStore(tabId) {
   return tabMediaStore[tabId];
 }
 
-/**
- * 直接DL機能は廃止。HLS/DASH(MSS含む)/収集ストリーム以外の単体ファイル
- * （通常の mp4 直リンクや、m3u8 の無い単独 .ts 等）は検出・一覧表示もしない。
- */
 function isHlsOrDashItem(item) {
   const mime = item.mimeHint ?? "";
   return /\.m3u8(\?|#|$)/i.test(item.url) || mime.includes("mpegurl") ||
          /\.mpd(\?|#|$)/i.test(item.url)  || mime.includes("dash+xml") || mime.includes("mpd");
+}
+
+/**
+ * HLS/DASH ではない、通常の progressive 動画/音声ファイル（mp4直リンク等）か。
+ * 単体ファイルの直接DLは downloadDirectRanged.js が再生時と同じ Range 分割
+ * リクエストで取得するため、ここでは一覧表示の対象として受け入れる。
+ */
+function isPlainMediaItem(item) {
+  const mime = item.mimeHint ?? "";
+  return MEDIA_MIME_RE.test(mime) || MEDIA_URL_RE.test(item.url);
 }
 
 function addToStore(tabId, item) {
@@ -30,7 +36,7 @@ function addToStore(tabId, item) {
     item.viaMss   = true;
   }
 
-  if (!item.isSegmentGroup && !isHlsOrDashItem(item)) return false;
+  if (!item.isSegmentGroup && !isHlsOrDashItem(item) && !isPlainMediaItem(item)) return false;
 
   const store = getStore(tabId);
   if (store.has(item.url)) return false;

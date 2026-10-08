@@ -76,23 +76,18 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     }
 
-    // ポップアップの「ダウンロード」ボタンからの要求
+    // ポップアップの「ダウンロード」ボタンからの要求（通常の progressive 直リンク）。
+    // 単発の全量GETではなく、再生時のような Range 分割リクエストで取得する
+    // （downloadDirectRanged.js。単発DLは拒否するが部分取得は許容する配信元対策）。
     case "DOWNLOAD_MEDIA": {
       const { url, mimeHint, pageURL } = message;
       const stem = inferStem(url);
       const ext  = inferExt(url, mimeHint);
       const filename = applyFilenameTemplate(stem, ext);
 
-      // Referer として使う pageURL をペンディングマップに登録
-      // onBeforeSendHeaders がリクエストを捕まえたら注入して削除する
-      if (pageURL) pendingReferers.set(url, pageURL);
-
-      browser.downloads.download({ url, filename })
-        .then(downloadId => sendResponse({ ok: true, downloadId }))
-        .catch(err => {
-          pendingReferers.delete(url); // 失敗時はマップをクリーンアップ
-          sendResponse({ ok: false, error: err.message });
-        });
+      downloadDirectRanged(url, pageURL ?? "", filename)
+        .then(result => sendResponse(result))
+        .catch(err   => sendResponse({ ok: false, error: err.message }));
       return true;
     }
 
@@ -211,9 +206,16 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // m3u8 がある = この .ts はそのストリームのセグメント。HLS 変換でまとめて
           // 取得されるので個別DLしない（一覧でも隠している）。
           continue;
+        } else {
+          // 通常の progressive 直リンク（mp4等）: 再生時のような Range 分割DL
+          // （downloadDirectRanged.js。個別の DOWNLOAD_MEDIA と同じ経路）。
+          const stem     = inferStem(item.url);
+          const ext      = inferExt(item.url, item.mimeHint ?? "");
+          const filename = applyFilenameTemplate(stem, ext);
+          downloadDirectRanged(item.url, item.pageURL || "", filename)
+            .catch(err => console.warn("[全DL] 直接DL失敗:", item.url, err.message));
+          converting++;
         }
-        // 直接DL機能は廃止。HLS/DASH/収集ストリーム以外（通常の mp4 直リンク等）は
-        // addToStore の時点で一覧に入らないため、この分岐に到達することはない。
       }
 
       Promise.all(promises)

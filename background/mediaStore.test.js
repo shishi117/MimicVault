@@ -1,5 +1,5 @@
 // background/mediaStore.test.js — MimicVault
-// addToStore の「直接DLアイテムは検出しない」フィルタの自己チェック。
+// addToStore の検出フィルタ（HLS/DASH/収集ストリーム/直接ファイル）の自己チェック。
 // 実行: node background/mediaStore.test.js
 
 "use strict";
@@ -14,17 +14,27 @@ global.browser = {
   },
 };
 global.isMssUrl = require("./ismToDashUrl").isMssUrl;
+// background/constants.js の該当定数（拡張機能内では同一グローバルスコープ経由で
+// 共有される。Node テストでは require できないため最小限だけ複製する）
+global.MEDIA_MIME_RE = /^(video|audio)\//i;
+global.MEDIA_URL_RE  = /\.(mp4|webm|mkv|mov|m4v|ogg|ogv|ts|m2ts|m3u8|mpd|m4s|m4a|mp3|aac|flac|opus|wav)(\?|#|$)/i;
 const { addToStore, getStore } = require("./mediaStore");
 
 const TAB = 1;
 
-// ── 直接ファイル（mp4 等）は検出しない ───────────────────────────────────────
+// ── 直接ファイル（mp4 等）は再生時のような Range 分割DL対象として検出する ────
 assert.strictEqual(
   addToStore(TAB, { url: "https://h/video.mp4", mimeHint: "video/mp4" }),
-  false,
-  "mp4 直リンクは追加されない"
+  true,
+  "mp4 直リンクは追加される（downloadDirectRanged.js で分割DL）"
 );
-assert.strictEqual(getStore(TAB).size, 0, "mp4 はストアに入らない");
+assert.strictEqual(getStore(TAB).size, 1, "mp4 がストアに入る");
+// 拡張子もmimeHintも無関係なものは追加しない
+assert.strictEqual(
+  addToStore(TAB, { url: "https://h/page.html", mimeHint: "text/html" }),
+  false,
+  "html はメディアとして追加されない"
+);
 
 // ── HLS / DASH は検出する ───────────────────────────────────────────────────
 assert.strictEqual(
@@ -43,7 +53,7 @@ assert.strictEqual(
   true,
   "mimeHint が mpegurl なら追加される"
 );
-assert.strictEqual(getStore(TAB).size, 3, "HLS/DASH 系の3件のみストアに入る");
+assert.strictEqual(getStore(TAB).size, 4, "mp4直リンク1件 + HLS/DASH系3件がストアに入る");
 
 // ── 収集ストリーム（isSegmentGroup）は URL 形状を問わず検出する ──────────────
 assert.strictEqual(

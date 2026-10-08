@@ -1,0 +1,143 @@
+// background/downloadDirectRanged.js — MimicVault
+// 直接配信された progressive 動画/音声ファイルの分割DL downloadDirectRanged
+//
+// 単発の大きな GET でまとめて取得する代わりに、実際の <video> 再生時と同様に
+// Range ヘッダー付きの複数リクエストに分けて取得し、結合して1ファイルとして保存する。
+// （単発の全量DLをブロックするが Range 分割の部分取得は許容する配信元があるため）
+//
+// 既知の簡略化 / アップグレードパス:
+//   固定チャンク数(RANGE_CHUNK_COUNT)に等分するだけの単純な方式。再生速度に
+//   寄せた可変チャンクサイズや間隔調整はしていない。チャンク間は順番に待って
+//   取得する（並列化すると同時多重接続になり再生らしさが失われるため）。
+
+"use strict";
+
+const RANGE_CHUNK_COUNT         = 6;        // 分割数の上限
+const RANGE_MIN_BYTES_PER_CHUNK = 1024 * 1024; // 1チャンクの最小サイズ(1MB)。これ未満のファイルは分割しない
+
+/** Range: bytes=0-0 で先頭1byteだけ取得し、Content-Range からファイル全体サイズを得る */
+async function probeContentLength(url, pageURL) {
+  if (pageURL) pendingReferers.set(url, pageURL);
+  let res;
+  try {
+    res = await fetch(url, { headers: { Range: "bytes=0-0" } });
+  } finally {
+    pendingReferers.delete(url);
+  }
+  if (res.status !== 206) return null; // Range 未対応 or 不明（単発取得にフォールバック）
+  const m = (res.headers.get("content-range") || "").match(/\/(\d+)$/); // "bytes 0-0/12345678"
+  return m ? parseInt(m[1], 10) : null;
+}
+
+/** 全体サイズを等分し、[start, end] の配列を返す（end は inclusive） */
+function buildChunkRanges(totalBytes) {
+  const count = Math.min(
+    RANGE_CHUNK_COUNT,
+    Math.max(1, Math.floor(totalBytes / RANGE_MIN_BYTES_PER_CHUNK))
+  );
+  const chunkSize = Math.ceil(totalBytes / count);
+  const ranges = [];
+  for (let start = 0; start < totalBytes; start += chunkSize) {
+    ranges.push([start, Math.min(start + chunkSize, totalBytes) - 1]);
+  }
+  return ranges;
+}
+
+async function fetchRange(url, pageURL, start, end) {
+  if (pageURL) pendingReferers.set(url, pageURL);
+  let res;
+  try {
+    res = await fetch(url, { headers: { Range: `bytes=${start}-${end}` } });
+  } finally {
+    pendingReferers.delete(url);
+  }
+  if (res.status !== 206 && res.status !== 200) {
+    throw new Error(`範囲取得失敗: HTTP ${res.status}`);
+  }
+  return res.arrayBuffer();
+}
+
+/**
+ * 直接 URL の progressive 動画/音声を、再生時のような Range 分割リクエストで
+ * 取得・結合して保存する。
+ *
+ * @param {string} url
+ * @param {string} pageURL     - Referer として使う元ページ URL
+ * @param {string} outputName  - 拡張子込みの保存ファイル名
+ * @returns {Promise<{ ok: true, downloadId: number } | { ok: false, error: string }>}
+ */
+async function downloadDirectRanged(url, pageURL, outputName) {
+  const sendProgress = (cur, tot) => {
+    browser.runtime.sendMessage({
+      type: "DIRECT_DOWNLOAD_PROGRESS", url, current: cur, total: tot,
+    }).catch(() => {});
+  };
+
+  const totalBytes = await probeContentLength(url, pageURL);
+  const ranges = totalBytes ? buildChunkRanges(totalBytes) : null;
+
+  const buffers = [];
+  try {
+    if (!ranges || ranges.length <= 1) {
+      // Range 未対応、またはファイルが小さく分割不要 → 単発取得
+      sendProgress(0, 1);
+      if (pageURL) pendingReferers.set(url, pageURL);
+      let res;
+      try {
+        res = await fetch(url);
+      } finally {
+        pendingReferers.delete(url);
+      }
+      if (!res.ok) return { ok: false, error: `取得失敗: HTTP ${res.status}` };
+      buffers.push(await res.arrayBuffer());
+      sendProgress(1, 1);
+    } else {
+      // 再生時と同様、1本ずつ順番に Range 取得する（並列化しない）
+      sendProgress(0, ranges.length);
+      for (let i = 0; i < ranges.length; i++) {
+        const [start, end] = ranges[i];
+        buffers.push(await fetchRange(url, pageURL, start, end));
+        sendProgress(i + 1, ranges.length);
+      }
+    }
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+
+  const totalLen = buffers.reduce((s, b) => s + b.byteLength, 0);
+  const combined = new Uint8Array(totalLen);
+  let offset = 0;
+  for (const b of buffers) { combined.set(new Uint8Array(b), offset); offset += b.byteLength; }
+
+  // 結合漏れ・重複が無いかの自己チェック（非自明なバイト結合のため）
+  if (totalBytes && combined.length !== totalBytes) {
+    return { ok: false, error: `結合後サイズ不一致: expected ${totalBytes}, got ${combined.length}` };
+  }
+
+  const blob    = new Blob([combined], { type: "video/mp4" });
+  const blobUrl = URL.createObjectURL(blob);
+  let downloadId;
+  try {
+    downloadId = await browser.downloads.download({ url: blobUrl, filename: outputName });
+  } catch (err) {
+    URL.revokeObjectURL(blobUrl);
+    return { ok: false, error: err.message };
+  }
+
+  const revokeTimer = setTimeout(() => URL.revokeObjectURL(blobUrl), 10 * 60 * 1000);
+  browser.downloads.onChanged.addListener(function onCh(delta) {
+    if (delta.id !== downloadId) return;
+    const st = delta.state?.current;
+    if (st === "complete" || st === "interrupted") {
+      clearTimeout(revokeTimer);
+      URL.revokeObjectURL(blobUrl);
+      browser.downloads.onChanged.removeListener(onCh);
+    }
+  });
+
+  return { ok: true, downloadId };
+}
+
+if (typeof module !== "undefined") {
+  module.exports = { downloadDirectRanged, buildChunkRanges, probeContentLength };
+}

@@ -84,6 +84,7 @@
       "background/dashSegments.js",
       "background/downloadDashTrack.js",
       "background/downloadDashAndMux.js",
+      "background/downloadDirectRanged.js",
       "background/autoDashMux.js",
       "background/companion.js",
       "background/companionHls.js",

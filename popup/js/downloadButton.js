@@ -24,8 +24,9 @@ function buildDownloadButton(item) {
     applyHlsDownloadButtonState(btn, hlsDownloadStates.get(item.url));
     btn.addEventListener("click", () => startHlsSegmentDownload(item, item.url, btn));
   } else {
-    // 直接DL機能は廃止済み。HLS/収集ストリーム以外は addToStore の時点で
-    // 一覧に入らないため、この分岐に来るのは DASH のみ。
+    // DASH、または通常の progressive 直リンク（mp4等）。
+    // 直リンクは background 側で再生時のような Range 分割DLに回される
+    // （downloadDirectRanged.js）。
     applyDownloadButtonState(btn, downloadStates.get(item.url));
     btn.addEventListener("click", () => startDownload(item, btn));
   }
