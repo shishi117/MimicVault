@@ -4,6 +4,16 @@
 "use strict";
 
 async function downloadHlsSegments(mediaPlaylistUrl, pageURL, tabId) {
+  try {
+    return await downloadHlsSegmentsInner(mediaPlaylistUrl, pageURL, tabId);
+  } finally {
+    // 進捗問い合わせキャッシュ（hlsProgressState）は成功・失敗問わず後片付けする。
+    // 残したままだと、同じ URL を後で再ダウンロードした時に古い進捗が一瞬見える。
+    hlsProgressState.delete(mediaPlaylistUrl);
+  }
+}
+
+async function downloadHlsSegmentsInner(mediaPlaylistUrl, pageURL, tabId) {
   // ── companion 接続時は master/media 問わず FFmpeg に丸投げ ──────────────────
   // FFmpeg はプレイリスト URL を直接受け取り、master なら画質を自動選択し、
   // セグメント取得・復号・結合・MP4 変換までを一括で行う。よって以降の
@@ -67,8 +77,13 @@ async function downloadHlsSegments(mediaPlaylistUrl, pageURL, tabId) {
   // ── 3. 並列セグメント fetch（＋必要なら復号） ─────────────────────────────
   const total = parsed.segments.length;
 
-  // popup への進捗通知（popup が閉じていてもエラーにしない）
+  // popup への進捗通知（popup が閉じていてもエラーにしない）。
+  // ブロードキャスト（sendMessage）に加えて hlsProgressState にも書いておき、
+  // ページに重ねるパネル（content script 注入の iframe）側は GET_HLS_PROGRESS
+  // で問い合わせても同じ値を取れるようにする（ブロードキャストが届かない
+  // 環境でも確実に進捗表示できるようにするための二重化）。
   const sendProgress = (current, t) => {
+    hlsProgressState.set(mediaPlaylistUrl, { current, total: t, converting: false });
     browser.runtime.sendMessage({
       type:    "HLS_DOWNLOAD_PROGRESS",
       url:     mediaPlaylistUrl,
@@ -179,10 +194,13 @@ async function downloadHlsSegments(mediaPlaylistUrl, pageURL, tabId) {
         const outputName = applyFilenameTemplate(hlsStem, "mp4");
         const result = await sendToCompanion(
           { type: "remux", inputPath, outputName },
-          (prog) => browser.runtime.sendMessage({
-            type: "HLS_DOWNLOAD_PROGRESS", url: mediaPlaylistUrl,
-            current: prog.percent ?? 0, total: 100, converting: true,
-          }).catch(() => {})
+          (prog) => {
+            hlsProgressState.set(mediaPlaylistUrl, { current: prog.percent ?? 0, total: 100, converting: true });
+            browser.runtime.sendMessage({
+              type: "HLS_DOWNLOAD_PROGRESS", url: mediaPlaylistUrl,
+              current: prog.percent ?? 0, total: 100, converting: true,
+            }).catch(() => {});
+          }
         );
         if (result.ok) {
           browser.downloads.removeFile(downloadId).catch(() => {});

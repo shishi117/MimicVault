@@ -41,7 +41,11 @@ async function downloadHlsViaCompanion(mediaPlaylistUrl, pageURL, tabId) {
       outputName,
     },
     (progressMsg) => {
-      // companion からの進捗通知を popup に転送
+      // companion からの進捗通知を popup に転送。
+      // ブロードキャスト（sendMessage）に加えて hlsProgressState にも書いておく
+      // （content script 注入のパネル iframe にはブロードキャストが届かない
+      // ことがあるため、GET_HLS_PROGRESS での問い合わせでも拾えるようにする）。
+      hlsProgressState.set(mediaPlaylistUrl, { current: progressMsg.percent ?? 0, total: 100, converting: true });
       browser.runtime.sendMessage({
         type:       "HLS_DOWNLOAD_PROGRESS",
         url:        mediaPlaylistUrl,
@@ -58,6 +62,7 @@ async function downloadHlsViaCompanion(mediaPlaylistUrl, pageURL, tabId) {
 
   // 変換完了 — filePath はユーザーの Downloads フォルダ内のパス
   // popup に 100% 完了を通知
+  hlsProgressState.set(mediaPlaylistUrl, { current: 100, total: 100, converting: true });
   browser.runtime.sendMessage({
     type:       "HLS_DOWNLOAD_PROGRESS",
     url:        mediaPlaylistUrl,

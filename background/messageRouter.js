@@ -18,6 +18,13 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     }
 
+    // パネル iframe が HLS ダウンロードの進捗をポーリングで取りに来る
+    // （hlsProgressState 参照。background/constants.js のコメント参照）。
+    case "GET_HLS_PROGRESS": {
+      sendResponse(hlsProgressState.get(message.url) ?? null);
+      return true;
+    }
+
     case "MEDIA_FOUND": {
       const tabId = sender.tab?.id;
       if (!tabId) break;
