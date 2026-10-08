@@ -7,7 +7,14 @@
 
 "use strict";
 
-const { ismBaseUrl } = typeof module !== "undefined" ? require("./ismToDashUrl") : self;
+// 拡張機能の background スクリプトは各ファイルが同一グローバルスコープを共有するため、
+// ismToDashUrl.js の ismBaseUrl（strict mode の関数宣言 = 非コンフィギュラブルな
+// グローバルプロパティ）と同名のトップレベル const 分割代入は
+// 「redeclaration of non-configurable global property」で background 全体の
+// 読み込みを止めてしまう（mssInitSegment.js の box と同じ問題）。IIFE で関数スコープ
+// に閉じ込める。
+(function () {
+  const { ismBaseUrl } = typeof module !== "undefined" ? require("./ismToDashUrl") : self;
 
 /**
  * .ism/Manifest の XML テキストをパースし、parseMpd() と同じ戻り値契約で返す。
@@ -137,6 +144,11 @@ function expandMssFragmentUrls(segInfo) {
   );
 }
 
-if (typeof module !== "undefined") {
-  module.exports = { parseIsmManifest, expandMssFragmentUrls };
-}
+  if (typeof module !== "undefined") {
+    module.exports = { parseIsmManifest, expandMssFragmentUrls };
+  } else {
+    // fetchDashInfo.js / dashSegments.js から直接グローバル参照される
+    self.parseIsmManifest = parseIsmManifest;
+    self.expandMssFragmentUrls = expandMssFragmentUrls;
+  }
+})();

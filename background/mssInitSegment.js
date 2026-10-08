@@ -8,10 +8,17 @@
 
 "use strict";
 
-// Node(テスト)実行時は require、拡張機能内では classic script のグローバルを使う
-// （mp4BoxWriter.js は背景スクリプトとして先に読み込まれ、関数がグローバルに生える）
-const { box, fullBox, u8, u16be, u32be, fourcc } =
-  typeof module !== "undefined" ? require("./mp4BoxWriter") : self;
+// 拡張機能の background スクリプトは各ファイルが同一グローバルスコープを共有する
+// （classic script の <script> 連結と同じ扱い）。mp4BoxWriter.js の box/fullBox/...
+// は strict mode の関数宣言のため非コンフィギュラブルなグローバルプロパティになり、
+// トップレベルで同名の const 分割代入をすると「redeclaration of non-configurable
+// global property」で background 全体の読み込みが止まる。IIFE で囲んで関数スコープ
+// に閉じ込めることでこれを避ける。
+(function () {
+  // Node(テスト)実行時は require、拡張機能内では classic script のグローバルを使う
+  // （mp4BoxWriter.js は背景スクリプトとして先に読み込まれ、関数がグローバルに生える）
+  const { box, fullBox, u8, u16be, u32be, fourcc } =
+    typeof module !== "undefined" ? require("./mp4BoxWriter") : self;
 
 // ─── hex文字列 → バイト列 ─────────────────────────────────────────────────────
 // hlsCrypto.js にも同種のヘルパーがあるが、Node テストから単体で require できるよう
@@ -314,9 +321,13 @@ function assertTopLevelBoxSizes(buf) {
   if (offset !== buf.length) throw new Error("mss_init_segment_trailing_bytes");
 }
 
-if (typeof module !== "undefined") {
-  module.exports = {
-    buildMssInitSegment, buildAvcC, buildEsds,
-    parseAvcCodecPrivateData, splitAnnexBNals, hexToBytes,
-  };
-}
+  if (typeof module !== "undefined") {
+    module.exports = {
+      buildMssInitSegment, buildAvcC, buildEsds,
+      parseAvcCodecPrivateData, splitAnnexBNals, hexToBytes,
+    };
+  } else {
+    // dashSegments.js から直接グローバル参照される
+    self.buildMssInitSegment = buildMssInitSegment;
+  }
+})();
