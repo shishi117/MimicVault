@@ -67,7 +67,21 @@ async function fetchRange(url, pageURL, start, end) {
  * @returns {Promise<{ ok: true, downloadId: number } | { ok: false, error: string }>}
  */
 async function downloadDirectRanged(url, pageURL, outputName) {
+  try {
+    return await downloadDirectRangedInner(url, pageURL, outputName);
+  } finally {
+    // 進捗問い合わせキャッシュ（directDownloadProgressState）は成功・失敗問わず
+    // 後片付けする。残したままだと同じ URL の再DL時に古い進捗が一瞬見える
+    // （hlsProgressState と同じ理由。background/hlsDownload.js 参照）。
+    directDownloadProgressState.delete(url);
+  }
+}
+
+async function downloadDirectRangedInner(url, pageURL, outputName) {
   const sendProgress = (cur, tot) => {
+    // ブロードキャストが content script 注入のパネル iframe に届かないことが
+    // あるため、ポーリング問い合わせ用にも書いておく（constants.js 参照）。
+    directDownloadProgressState.set(url, { current: cur, total: tot });
     browser.runtime.sendMessage({
       type: "DIRECT_DOWNLOAD_PROGRESS", url, current: cur, total: tot,
     }).catch(() => {});

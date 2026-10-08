@@ -42,3 +42,13 @@ const pendingReferers = new Map();
  */
 const hlsProgressState = new Map();
 
+// ─── 直接ファイル（mp4等）Range分割DLの進捗の問い合わせ用キャッシュ ──────────
+/**
+ * hlsProgressState と同じ理由（ブロードキャストが iframe パネルに届かないことが
+ * ある）で、downloadDirectRanged.js の進捗もここに保持し、
+ * popup/js/downloadButton.js が GET_DIRECT_DOWNLOAD_PROGRESS で
+ * 定期的に問い合わせて補完する。
+ * key: 直リンク URL, value: { current, total }
+ */
+const directDownloadProgressState = new Map();
+

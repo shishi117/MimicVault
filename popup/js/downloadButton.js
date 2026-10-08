@@ -48,6 +48,21 @@ async function startDownload(item, btn) {
   downloadStates.set(item.url, ds);
   applyDownloadButtonState(btn, ds);
 
+  // DIRECT_DOWNLOAD_PROGRESS のブロードキャストは、ページに重ねるパネル
+  // （content script 注入の iframe）には届かないことがある。そのため
+  // background の directDownloadProgressState を直接ポーリングして補う
+  // （popup/js/hlsDownload.js の GET_HLS_PROGRESS ポーリングと同じ理由）。
+  const pollTimer = setInterval(async () => {
+    if (ds.state !== "downloading") return;
+    let progress;
+    try {
+      progress = await browser.runtime.sendMessage({ type: "GET_DIRECT_DOWNLOAD_PROGRESS", url: item.url });
+    } catch (_) { return; }
+    if (!progress || ds.state !== "downloading" || !(progress.total > 0)) return;
+    ds.progress = Math.round((progress.current / progress.total) * 100);
+    applyDownloadButtonState(btn, ds);
+  }, 700);
+
   try {
     const res = await browser.runtime.sendMessage({
       type:     "DOWNLOAD_MEDIA",
@@ -66,6 +81,8 @@ async function startDownload(item, btn) {
   } catch (_) {
     ds.state = "error";
     applyDownloadButtonState(btn, ds);
+  } finally {
+    clearInterval(pollTimer);
   }
 }
 

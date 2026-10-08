@@ -25,6 +25,13 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     }
 
+    // パネル iframe が直接ファイル（mp4等）の Range 分割DL進捗をポーリングで取りに来る
+    // （directDownloadProgressState 参照。GET_HLS_PROGRESS と同じ理由）。
+    case "GET_DIRECT_DOWNLOAD_PROGRESS": {
+      sendResponse(directDownloadProgressState.get(message.url) ?? null);
+      return true;
+    }
+
     case "MEDIA_FOUND": {
       const tabId = sender.tab?.id;
       if (!tabId) break;
