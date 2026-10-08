@@ -116,11 +116,11 @@ async function loadActiveTab() {
 /**
  * 検出済みの DASH/HLS アイテムのメタ情報（方式・長さ・結合後サイズ）を
  * background に並列で問い合わせ、mediaMetaStore に格納してリストを再描画する。
- * 直接ファイル（mp4 等）は長さ不明のため対象外。
+ * 直接ファイル（mp4 等、ラベル「分割」）は長さ不明のため対象外。
  * 既知の簡略化: 全件 settle 後に一括再描画（通常ページ内のストリームは1本程度）。
  */
 async function loadMediaMeta() {
-  const streams = allItems.filter(it => !it.isSegmentGroup && mediaMethodLabel(it) !== "直接");
+  const streams = allItems.filter(it => !it.isSegmentGroup && mediaMethodLabel(it) !== "分割");
   if (streams.length === 0) return;
 
   await Promise.allSettled(streams.map(async (item) => {

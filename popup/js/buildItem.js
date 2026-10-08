@@ -52,7 +52,7 @@ function buildItem(item) {
   meta.appendChild(makeChip(metaInfo?.method ?? mediaMethodLabel(item)));
 
   // 収集ストリームは長さ不明なので断片数を出す。それ以外は長さ（未取得なら "…"）。
-  const isStream = mediaMethodLabel(item) !== "直接";
+  const isStream = mediaMethodLabel(item) !== "分割";
   if (item.isSegmentGroup) {
     meta.appendChild(makeChip(`${item.segmentCount ?? 0}断片`));
   } else if (metaInfo?.durationSec) {

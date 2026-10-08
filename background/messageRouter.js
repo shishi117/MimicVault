@@ -207,14 +207,9 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // 取得されるので個別DLしない（一覧でも隠している）。
           continue;
         } else {
-          // 通常の progressive 直リンク（mp4等）: 再生時のような Range 分割DL
-          // （downloadDirectRanged.js。個別の DOWNLOAD_MEDIA と同じ経路）。
-          const stem     = inferStem(item.url);
-          const ext      = inferExt(item.url, item.mimeHint ?? "");
-          const filename = applyFilenameTemplate(stem, ext);
-          downloadDirectRanged(item.url, item.pageURL || "", filename)
-            .catch(err => console.warn("[全DL] 直接DL失敗:", item.url, err.message));
-          converting++;
+          // 通常の progressive 直リンク（mp4等）: Range 分割DLは1本ずつ時間が
+          // かかるため全DLには含めない。個別の「↓DL」ボタンから行う。
+          skipped.push({ url: item.url, reason: "個別のDLボタンをご利用ください" });
         }
       }
 

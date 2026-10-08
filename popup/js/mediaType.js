@@ -35,6 +35,8 @@ function mediaMethodLabel(item) {
   const isHls = isHlsUrl(item.url) ||
     (item.mimeHint ?? "").includes("mpegurl") || (item.mimeHint ?? "").includes("m3u8");
   if (isHls) return "HLS";
-  return "直接";
+  // 通常の progressive 直リンク。downloadDirectRanged.js が再生時のような
+  // Range 分割リクエストで取得するため、ラベルもそれに合わせる。
+  return "分割";
 }
 

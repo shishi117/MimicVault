@@ -84,6 +84,16 @@ browser.runtime.onMessage.addListener((message) => {
     return;
   }
 
+  // 直接ファイル（mp4等）の Range 分割DL取得の進捗（downloadDirectRanged.js）
+  if (message.type === "DIRECT_DOWNLOAD_PROGRESS") {
+    const ds = downloadStates.get(message.url);
+    if (ds && message.total > 0) {
+      ds.progress = Math.round((message.current / message.total) * 100);
+      updateDownloadButton(message.url);
+    }
+    return;
+  }
+
   // ── v0.18.0: DASH mux フォールバック通知 ─────────────────────────────────
   if (message.type === "DASH_MUX_FALLBACK") {
     showToast("companion 未接続のため映像・音声を別ファイルで保存します");
