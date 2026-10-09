@@ -73,12 +73,16 @@ async function startDownload(item, btn) {
     });
 
     if (res?.ok) {
+      // browser.downloads.onChanged（messages.js）はこのパネル（iframe）では
+      // 使えないことがあるため、完了判定はそれに頼らずここで直接行う
+      // （popup/js/segmentGroupDownload.js と同じパターン）。
+      ds.state = "complete";
       ds.downloadId = res.downloadId;
       downloadIdToUrl.set(res.downloadId, item.url);
     } else {
       ds.state = "error";
-      applyDownloadButtonState(btn, ds);
     }
+    applyDownloadButtonState(btn, ds);
   } catch (_) {
     ds.state = "error";
     applyDownloadButtonState(btn, ds);

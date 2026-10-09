@@ -3,33 +3,40 @@
 
 "use strict";
 
-browser.downloads.onChanged.addListener((delta) => {
-  const url = downloadIdToUrl.get(delta.id);
-  if (!url) return;
+// content script が注入するこのパネル（popup.html を読み込む iframe）では
+// browser.downloads が未定義になる（Firefox の制約。ページに重ねた iframe には
+// 一部の特権APIが渡らない）。ガード無しで呼ぶと例外で以降の行（下の
+// runtime.onMessage.addListener も含む）が一切実行されず、HLS/DASH/収集
+// ストリーム/ライブ録画/分割DL の進捗通知が軒並み届かなくなる。
+if (browser.downloads?.onChanged) {
+  browser.downloads.onChanged.addListener((delta) => {
+    const url = downloadIdToUrl.get(delta.id);
+    if (!url) return;
 
-  const ds = downloadStates.get(url);
-  if (!ds) return;
+    const ds = downloadStates.get(url);
+    if (!ds) return;
 
-  // 進捗更新
-  if (delta.bytesReceived && delta.totalBytes) {
-    const received = delta.bytesReceived.current ?? 0;
-    const total    = delta.totalBytes.current ?? 0;
-    if (total > 0) ds.progress = Math.round((received / total) * 100);
-  }
+    // 進捗更新
+    if (delta.bytesReceived && delta.totalBytes) {
+      const received = delta.bytesReceived.current ?? 0;
+      const total    = delta.totalBytes.current ?? 0;
+      if (total > 0) ds.progress = Math.round((received / total) * 100);
+    }
 
-  // 状態遷移
-  if (delta.state) {
-    const next = delta.state.current;
-    if (next === "complete")     ds.state = "complete";
-    if (next === "interrupted")  ds.state = "interrupted";
-  }
-  if (delta.error) {
-    ds.state = "error";
-  }
+    // 状態遷移
+    if (delta.state) {
+      const next = delta.state.current;
+      if (next === "complete")     ds.state = "complete";
+      if (next === "interrupted")  ds.state = "interrupted";
+    }
+    if (delta.error) {
+      ds.state = "error";
+    }
 
-  // ボタン UI を更新する
-  updateDownloadButton(url);
-});
+    // ボタン UI を更新する
+    updateDownloadButton(url);
+  });
+}
 
 /**
  * background から届く HLS セグメント取得の進捗を受け取り、
