@@ -118,6 +118,29 @@ function inferMime(url) {
   return table[ext] || "video/*";
 }
 
+// ─── ページ見出しの取得（ファイル名の %title 用） ────────────────────────────
+
+/**
+ * 動画フレーム付近の「タイトルらしきもの」を推定して返す。
+ * 多くの動画サイトは SEO のため動画タイトルを <h1> に入れているため、
+ * これを最優先にする。見つからなければ document.title にフォールバックする。
+ *
+ * 既知の簡略化: <h1> が複数ある/無関係なページ見出しのみのレイアウトでは
+ * 外れることがある（サイト別のセレクタ分岐は作らない方針のため汎用判定のみ）。
+ */
+function getPageHeading() {
+  const h1 = document.querySelector("h1");
+  const text = h1?.textContent?.trim();
+  return text || document.title || "";
+}
+
+browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "GET_PAGE_HEADING") {
+    sendResponse(getPageHeading());
+    return true;
+  }
+});
+
 // ─── Background への送信 ──────────────────────────────────────────────────────
 
 /**

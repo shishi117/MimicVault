@@ -19,6 +19,7 @@
  *     mpdUrl:      string,
  *     mpdDuration: number,
  *     pageURL:     string,
+ *     tabId:       number,          // ファイル名に動画タイトルを使うため
  *   }
  *
  * 返り値:
@@ -26,12 +27,12 @@
  *   { ok: true,  muxed: false }             — フォールバック（別ファイルDL）
  *   { ok: false, error }                    — 失敗
  */
-async function downloadDashAndMux({ videoRep, audioRep, mpdUrl, mpdDuration, pageURL }) {
+async function downloadDashAndMux({ videoRep, audioRep, mpdUrl, mpdDuration, pageURL, tabId }) {
   // companion 未接続 → 別ファイルフォールバック
   if (!companionPort) {
     browser.runtime.sendMessage({ type: "DASH_MUX_FALLBACK" }).catch(() => {});
-    const vRes = await downloadDashTrack({ rep: videoRep, mpdUrl, mpdDuration, trackType: "video", pageURL });
-    const aRes = await downloadDashTrack({ rep: audioRep, mpdUrl, mpdDuration, trackType: "audio", pageURL });
+    const vRes = await downloadDashTrack({ rep: videoRep, mpdUrl, mpdDuration, trackType: "video", pageURL, tabId });
+    const aRes = await downloadDashTrack({ rep: audioRep, mpdUrl, mpdDuration, trackType: "audio", pageURL, tabId });
     return { ok: true, muxed: false, videoResult: vRes, audioResult: aRes };
   }
 
@@ -116,7 +117,7 @@ async function downloadDashAndMux({ videoRep, audioRep, mpdUrl, mpdDuration, pag
     blobToBase64(audioBlob),
   ]);
 
-  const stem       = inferStem(mpdUrl);
+  const stem       = await inferTitleStem(mpdUrl, tabId);
   const outputName = applyFilenameTemplate(stem, "mp4");
 
   let result;

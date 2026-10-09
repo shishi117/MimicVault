@@ -70,6 +70,7 @@ async function startDownload(item, btn) {
       mimeHint:      item.mimeHint ?? "",
       pageURL:       item.pageURL  ?? "",  // Referer として使う元ページ URL
       contentLength: item.contentLength ?? null, // 検出時に分かっていればRange分割に使う
+      tabId:         currentTabId, // ファイル名に動画タイトルを使うため
     });
 
     if (res?.ok) {

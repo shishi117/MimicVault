@@ -30,6 +30,7 @@ async function startDashMux(item, videoRep, audioRep, btn) {
       mpdUrl:      item.url,
       mpdDuration,
       pageURL:     item.pageURL ?? "",
+      tabId:       currentTabId, // ファイル名に動画タイトルを使うため
     });
   } catch (err) {
     result = { ok: false, error: err.message };

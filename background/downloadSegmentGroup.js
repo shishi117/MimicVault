@@ -68,10 +68,16 @@ async function downloadSegmentGroup({ groupKey, tabId }) {
     if (b) { combined.set(new Uint8Array(b), off); off += b.byteLength; }
   }
 
+  // 「動画タイトルらしきもの + 既存のステム（ディレクトリ名。画質表記を含むことが多い）」
+  // にする（background/urlHelpers.js の inferTitleStem と同じ方針）。
+  const title     = await getPageTitle(tabId);
+  const baseStem  = stem || "stream";
+  const fullStem  = title ? `${title} ${baseStem}` : baseStem;
+
   // remux（companion）は常に正規 MP4 を出力するため拡張子は mp4 で固定。
   // 未接続/失敗時の直接保存のみ、.ts 断片なら .ts 拡張子で保存する。
-  const remuxOutputName    = applyFilenameTemplate(stem || "stream", "mp4");
-  const fallbackOutputName = isTs ? applyFilenameTemplate(stem || "stream", "ts") : remuxOutputName;
+  const remuxOutputName    = applyFilenameTemplate(fullStem, "mp4");
+  const fallbackOutputName = isTs ? applyFilenameTemplate(fullStem, "ts") : remuxOutputName;
 
   // ── companion 接続時は remux で正規 MP4 に ──────────────────────────────
   if (companionPort) {

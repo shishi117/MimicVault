@@ -19,19 +19,34 @@ function inferStem(url) {
 }
 
 /**
- * ファイル名のステムを決める。タブの表示タイトルが取れればそれを使い、
- * 取れない場合（タブが閉じている等）は URL ベースの inferStem にフォールバックする。
- * CDN によっては URL が "video.m3u8" 等の定型名で、URL だけではサイト固有の
- * タイトルを拾えないため、タブのタイトルを優先する。
+ * タブから「動画タイトルらしきもの」を取得する。
+ * 優先順位: content script が動画フレーム付近から推定した見出し(GET_PAGE_HEADING)
+ * → タブの表示タイトル → 取得できなければ null。
+ */
+async function getPageTitle(tabId) {
+  if (tabId == null) return null;
+  try {
+    const heading = await browser.tabs.sendMessage(tabId, { type: "GET_PAGE_HEADING" });
+    if (heading) return heading;
+  } catch (_) { /* content script 未注入（document_idle 前等）は無視 */ }
+  try {
+    const tab = await browser.tabs.get(tabId);
+    if (tab?.title) return tab.title;
+  } catch (_) { /* タブが閉じている等は無視 */ }
+  return null;
+}
+
+/**
+ * ファイル名のステムを決める: 「動画タイトルらしきもの + URLベースのステム」。
+ * URL ベースのステムには画質表記（720p 等）が含まれることが多く、タイトルだけ
+ * だと画質が分からなくなるため両方を残す。タイトルが取れない場合は URL ベースの
+ * ステムのみになる（CDN によっては URL が "video.m3u8" 等の定型名のため、
+ * タブのタイトルを優先して補う）。
  */
 async function inferTitleStem(url, tabId) {
-  if (tabId != null) {
-    try {
-      const tab = await browser.tabs.get(tabId);
-      if (tab?.title) return tab.title;
-    } catch (_) { /* タブが閉じている等は無視 */ }
-  }
-  return inferStem(url);
+  const urlStem = inferStem(url);
+  const title = await getPageTitle(tabId);
+  return title ? `${title} ${urlStem}` : urlStem;
 }
 
 /**

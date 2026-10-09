@@ -37,6 +37,7 @@ async function startDashTrackDownload(item, rep, trackType, btn) {
       mpdDuration,
       trackType,
       pageURL:     item.pageURL ?? "",
+      tabId:       currentTabId, // ファイル名に動画タイトルを使うため
     });
   } catch (err) {
     result = { ok: false, error: err.message };

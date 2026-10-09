@@ -87,12 +87,11 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // 単発の全量GETではなく、再生時のような Range 分割リクエストで取得する
     // （downloadDirectRanged.js。単発DLは拒否するが部分取得は許容する配信元対策）。
     case "DOWNLOAD_MEDIA": {
-      const { url, mimeHint, pageURL, contentLength } = message;
-      const stem = inferStem(url);
-      const ext  = inferExt(url, mimeHint);
-      const filename = applyFilenameTemplate(stem, ext);
+      const { url, mimeHint, pageURL, contentLength, tabId } = message;
+      const ext = inferExt(url, mimeHint);
 
-      downloadDirectRanged(url, pageURL ?? "", filename, contentLength ?? null)
+      inferTitleStem(url, tabId)
+        .then(stem => downloadDirectRanged(url, pageURL ?? "", applyFilenameTemplate(stem, ext), contentLength ?? null))
         .then(result => sendResponse(result))
         .catch(err   => sendResponse({ ok: false, error: err.message }));
       return true;
@@ -197,7 +196,7 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // （未接続では mux 不可のためスキップ。HLS と同じ挙動）
           // 既知の簡略化: 複数 DASH があると FFmpeg が同時起動する（通常1本なので許容）。
           if (companionPort) {
-            autoDashMux(item)
+            autoDashMux(item, allTabId)
               .catch(err => console.warn("[全DL] DASH mux失敗:", item.url, err.message));
             converting++;
           } else {

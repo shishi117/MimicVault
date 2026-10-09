@@ -3,7 +3,7 @@
 
 "use strict";
 
-async function downloadDashTrack({ rep, mpdUrl, mpdDuration, trackType, pageURL }) {
+async function downloadDashTrack({ rep, mpdUrl, mpdDuration, trackType, pageURL, tabId }) {
   const { id, bandwidth, segInfo } = rep;
 
   // ── セグメント URL を展開 ──────────────────────────────────────────────
@@ -88,15 +88,10 @@ async function downloadDashTrack({ rep, mpdUrl, mpdDuration, trackType, pageURL 
   const blob     = new Blob([combined], { type: blobMime });
   const blobUrl  = URL.createObjectURL(blob);
 
-  // ファイル名: <mpdステム>_<trackType>_<repId>.<ext>
-  // 例: stream_video_1.mp4 / stream_audio_10.m4a
-  const ext = trackType === "audio" ? "m4a" : "mp4";
-  let stem  = "dash";
-  try {
-    const pathname = new URL(mpdUrl).pathname;
-    const raw = pathname.split("/").filter(Boolean).pop() ?? "";
-    stem = (raw.replace(/\.[^.]+$/, "") || "dash").replace(/[/\\:*?"<>|]/g, "_");
-  } catch (_) {}
+  // ファイル名: <動画タイトルらしきもの + mpdステム>_<trackType>_<repId>.<ext>
+  // 例: "動画タイトル 1080p_video_1.mp4" / "動画タイトル 1080p_audio_10.m4a"
+  const ext  = trackType === "audio" ? "m4a" : "mp4";
+  const stem = await inferTitleStem(mpdUrl, tabId);
   const filename = applyFilenameTemplate(`${stem}_${trackType}_${id}`, ext);
 
   let downloadId;
