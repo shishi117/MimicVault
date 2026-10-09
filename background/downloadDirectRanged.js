@@ -62,13 +62,18 @@ async function fetchRange(url, pageURL, start, end) {
  * 取得・結合して保存する。
  *
  * @param {string} url
- * @param {string} pageURL     - Referer として使う元ページ URL
- * @param {string} outputName  - 拡張子込みの保存ファイル名
+ * @param {string} pageURL       - Referer として使う元ページ URL
+ * @param {string} outputName    - 拡張子込みの保存ファイル名
+ * @param {?number} knownTotalBytes - 検出時に既に分かっているファイル全体サイズ
+ *   （item.contentLength）。渡されていればこれを使い、Range: bytes=0-0 での
+ *   再取得（プローブ）はしない。配信元によってはこのプローブ自体を弾く/無視する
+ *   ことがあり、その場合 totalBytes 不明のまま単発の全量GETに落ちて分割できず、
+ *   進捗が最後まで動かない（既に表示できているサイズを使い回せば避けられる）。
  * @returns {Promise<{ ok: true, downloadId: number } | { ok: false, error: string }>}
  */
-async function downloadDirectRanged(url, pageURL, outputName) {
+async function downloadDirectRanged(url, pageURL, outputName, knownTotalBytes) {
   try {
-    return await downloadDirectRangedInner(url, pageURL, outputName);
+    return await downloadDirectRangedInner(url, pageURL, outputName, knownTotalBytes);
   } finally {
     // 進捗問い合わせキャッシュ（directDownloadProgressState）は成功・失敗問わず
     // 後片付けする。残したままだと同じ URL の再DL時に古い進捗が一瞬見える
@@ -77,7 +82,7 @@ async function downloadDirectRanged(url, pageURL, outputName) {
   }
 }
 
-async function downloadDirectRangedInner(url, pageURL, outputName) {
+async function downloadDirectRangedInner(url, pageURL, outputName, knownTotalBytes) {
   const sendProgress = (cur, tot) => {
     // ブロードキャストが content script 注入のパネル iframe に届かないことが
     // あるため、ポーリング問い合わせ用にも書いておく（constants.js 参照）。
@@ -87,7 +92,7 @@ async function downloadDirectRangedInner(url, pageURL, outputName) {
     }).catch(() => {});
   };
 
-  const totalBytes = await probeContentLength(url, pageURL);
+  const totalBytes = (knownTotalBytes > 0) ? knownTotalBytes : await probeContentLength(url, pageURL);
   const ranges = totalBytes ? buildChunkRanges(totalBytes) : null;
 
   const buffers = [];

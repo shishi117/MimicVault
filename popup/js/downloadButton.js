@@ -65,10 +65,11 @@ async function startDownload(item, btn) {
 
   try {
     const res = await browser.runtime.sendMessage({
-      type:     "DOWNLOAD_MEDIA",
-      url:      item.url,
-      mimeHint: item.mimeHint ?? "",
-      pageURL:  item.pageURL  ?? "",  // Referer として使う元ページ URL
+      type:          "DOWNLOAD_MEDIA",
+      url:           item.url,
+      mimeHint:      item.mimeHint ?? "",
+      pageURL:       item.pageURL  ?? "",  // Referer として使う元ページ URL
+      contentLength: item.contentLength ?? null, // 検出時に分かっていればRange分割に使う
     });
 
     if (res?.ok) {

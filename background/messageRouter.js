@@ -87,12 +87,12 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // 単発の全量GETではなく、再生時のような Range 分割リクエストで取得する
     // （downloadDirectRanged.js。単発DLは拒否するが部分取得は許容する配信元対策）。
     case "DOWNLOAD_MEDIA": {
-      const { url, mimeHint, pageURL } = message;
+      const { url, mimeHint, pageURL, contentLength } = message;
       const stem = inferStem(url);
       const ext  = inferExt(url, mimeHint);
       const filename = applyFilenameTemplate(stem, ext);
 
-      downloadDirectRanged(url, pageURL ?? "", filename)
+      downloadDirectRanged(url, pageURL ?? "", filename, contentLength ?? null)
         .then(result => sendResponse(result))
         .catch(err   => sendResponse({ ok: false, error: err.message }));
       return true;
