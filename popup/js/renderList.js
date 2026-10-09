@@ -22,12 +22,20 @@ function renderList() {
   // 3.5: 短尺・極小の断片を隠す。長さが分かれば再生時間で、長さ不明なら
   // サイズ（結合後推定 or Content-Length）で判定する。基準値は設定で変更可（0 で無効）。
   // サイズも不明なら判定不能なので表示する。
+  //
+  // 注意: HLS/DASH/収集ストリームの item.contentLength は、検出時に見えた
+  // マニフェスト自体（.m3u8/.mpd、数百byte程度のテキスト）や断片1本分のサイズで、
+  // 結合後の動画サイズとは無関係。GET_MEDIA_META が未取得/失敗のときにこれを
+  // 「サイズ不明の代わり」として使うと、実際は巨大な動画が誤って「小さすぎる」
+  // と一覧から消えてしまう。単体ファイル（ラベル「分割」。item.contentLength が
+  // 実ファイルそのもののサイズ）のときだけ Content-Length を使う。
   const minDur   = userSettings.popupMinDurationSec;
   const minSizeB = userSettings.popupMinSizeKB * 1024;
   items = items.filter(it => {
     const meta = mediaMetaStore.get(it.url);
     if (meta?.durationSec != null) return meta.durationSec >= minDur;
-    const size = meta?.sizeBytes ?? it.contentLength;
+    const isSingleFile = !it.isSegmentGroup && mediaMethodLabel(it) === "分割";
+    const size = meta?.sizeBytes ?? (isSingleFile ? it.contentLength : null);
     return size == null || size >= minSizeB;
   });
 
