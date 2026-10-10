@@ -9,6 +9,15 @@
 //   固定チャンク数(RANGE_CHUNK_COUNT)に等分するだけの単純な方式。再生速度に
 //   寄せた可変チャンクサイズや間隔調整はしていない。チャンク間は順番に待って
 //   取得する（並列化すると同時多重接続になり再生らしさが失われるため）。
+//
+// companion 接続時はディスク退避方式（downloadDirectRangedViaDisk）を使う。
+// 各チャンクを取得するたびに browser.downloads.download() で実ファイルとして
+// ディスクに保存し、全パート保存後に companion（Node.js の fs ストリーム）側で
+// 連結する。メモリ上に全チャンク＋結合用コピーを同時に保持しない（hlsDownload.js
+// の「base64 Native Messaging は巨大ファイルで実質ハングした」という既知の
+// 教訓と同じ理由で、パートはバイト列ではなくファイルパスで companion に渡す）。
+// companion 未接続、またはディスク退避経路が失敗した場合は、従来の
+// メモリ結合方式にフォールバックする。
 
 "use strict";
 
@@ -82,6 +91,64 @@ async function downloadDirectRanged(url, pageURL, outputName, knownTotalBytes) {
   }
 }
 
+/**
+ * companion（Node.js）を使ったディスク退避方式。チャンクを取得するたびに
+ * browser.downloads.download() で実ファイルとして保存し、全パート完了後に
+ * companion へパス一覧だけを渡して fs ストリームで連結させる。
+ * パート保存・companion連結のどちらかが失敗したら例外を投げ、呼び出し元
+ * （downloadDirectRangedInner）で従来のメモリ結合方式にフォールバックする。
+ */
+async function downloadDirectRangedViaDisk(url, pageURL, outputName, ranges, sendProgress) {
+  const partDownloadIds = [];
+  const partPaths = [];
+
+  const cleanupParts = () => {
+    for (const id of partDownloadIds) browser.downloads.removeFile(id).catch(() => {});
+  };
+
+  try {
+    sendProgress(0, ranges.length);
+    for (let i = 0; i < ranges.length; i++) {
+      const [start, end] = ranges[i];
+      const buf = await fetchRange(url, pageURL, start, end);
+
+      const blobUrl = URL.createObjectURL(new Blob([buf]));
+      let downloadId;
+      try {
+        downloadId = await browser.downloads.download({
+          url: blobUrl,
+          filename: `mimicvault_part_${Date.now()}_${i}.part`,
+        });
+      } finally {
+        URL.revokeObjectURL(blobUrl);
+      }
+
+      const done = await awaitDownloadComplete(downloadId);
+      if (!done.ok) throw new Error(`パート${i}の保存失敗: ${done.error}`);
+
+      const [info] = await browser.downloads.search({ id: downloadId });
+      if (!info?.filename) throw new Error(`パート${i}の保存先パス取得失敗`);
+
+      partDownloadIds.push(downloadId);
+      partPaths.push(info.filename);
+      sendProgress(i + 1, ranges.length);
+    }
+  } catch (err) {
+    cleanupParts();
+    throw err;
+  }
+
+  const result = await sendToCompanion({ type: "concatParts", inputPaths: partPaths, outputName });
+  if (!result.ok) {
+    cleanupParts();
+    throw new Error(result.error ?? "companion concat failed");
+  }
+
+  // 成功時は companion 側（handleConcatParts.js）が連結直後に unlink 済みなので、
+  // ここで二重に削除しない。
+  return { ok: true, downloadId: null, filePath: result.filePath };
+}
+
 async function downloadDirectRangedInner(url, pageURL, outputName, knownTotalBytes) {
   const sendProgress = (cur, tot) => {
     // ブロードキャストが content script 注入のパネル iframe に届かないことが
@@ -94,6 +161,16 @@ async function downloadDirectRangedInner(url, pageURL, outputName, knownTotalByt
 
   const totalBytes = (knownTotalBytes > 0) ? knownTotalBytes : await probeContentLength(url, pageURL);
   const ranges = totalBytes ? buildChunkRanges(totalBytes) : null;
+
+  // companion 接続時は、分割が必要な（1チャンクより多い）場合のみディスク退避
+  // 経路を試す。失敗時は下の従来経路（メモリ結合）にフォールバックする。
+  if (companionPort && ranges && ranges.length > 1) {
+    try {
+      return await downloadDirectRangedViaDisk(url, pageURL, outputName, ranges, sendProgress);
+    } catch (err) {
+      console.warn("[Companion] 分割DLのディスク結合に失敗、メモリ結合へフォールバック:", err.message);
+    }
+  }
 
   const buffers = [];
   try {

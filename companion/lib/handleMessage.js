@@ -7,6 +7,7 @@ const { getFfmpegVersion } = require("./ffmpeg");
 const handleConvert = require("./handleConvert");
 const handleMux = require("./handleMux");
 const handleRemux = require("./handleRemux");
+const handleConcatParts = require("./handleConcatParts");
 
 // ─── コマンドディスパッチャ ───────────────────────────────────────────────────
 
@@ -45,6 +46,11 @@ async function handleMessage(msg) {
     // ── remux: 収集ストリーム(単一入力) → MP4（v0.19.0）───────────────────
     case "remux":
       await handleRemux(msg);
+      break;
+
+    // ── concatParts: 分割DLパート(ディスク上の一時ファイル群) → 単純連結 ────
+    case "concatParts":
+      await handleConcatParts(msg);
       break;
 
     default:
