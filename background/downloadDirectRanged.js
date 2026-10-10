@@ -6,9 +6,10 @@
 // （単発の全量DLをブロックするが Range 分割の部分取得は許容する配信元があるため）
 //
 // 既知の簡略化 / アップグレードパス:
-//   固定チャンク数(RANGE_CHUNK_COUNT)に等分するだけの単純な方式。再生速度に
-//   寄せた可変チャンクサイズや間隔調整はしていない。チャンク間は順番に待って
-//   取得する（並列化すると同時多重接続になり再生らしさが失われるため）。
+//   1チャンクのサイズ上限(RANGE_CHUNK_MAX_BYTES)に収まる最小の分割数で等分
+//   するだけの単純な方式。再生速度に寄せた間隔調整はしていない。チャンク間は
+//   順番に待って取得する（並列化すると同時多重接続になり再生らしさが失われる
+//   ため）。
 //
 // companion 接続時はディスク退避方式（downloadDirectRangedViaDisk）を使う。
 // 各チャンクを取得するたびに browser.downloads.download() で実ファイルとして
@@ -21,8 +22,17 @@
 
 "use strict";
 
-const RANGE_CHUNK_COUNT         = 6;        // 分割数の上限
-const RANGE_MIN_BYTES_PER_CHUNK = 1024 * 1024; // 1チャンクの最小サイズ(1MB)。これ未満のファイルは分割しない
+// 1チャンクのサイズ上限（10MB）。分割数を固定値にせず、この上限に収まる
+// 最小の分割数を毎回計算する。そのため巨大ファイルでも1チャンクが肥大化せず
+// （再生時のような小さいRange取得を維持）、小さいファイルは自然に1チャンク
+// （＝分割なし）になる。
+//
+// 既知の簡略化: 上限ちょうどで割るだけなので、下限は明示の定数を持たない。
+// count は「totalBytes/上限 以上の最小整数」になるように選ぶため、2分割以上
+// になる場合は必ず 上限の半分（5MB）〜上限（10MB）の範囲に収まる（算術的に
+// 保証される。companion なしでは実際のバイト列を保持する関数テストでは検証
+// 済み。上限を変える場合、半分の値が「数MB」から外れないよう確認すること）。
+const RANGE_CHUNK_MAX_BYTES = 10 * 1024 * 1024;
 
 /** Range: bytes=0-0 で先頭1byteだけ取得し、Content-Range からファイル全体サイズを得る */
 async function probeContentLength(url, pageURL) {
@@ -40,10 +50,7 @@ async function probeContentLength(url, pageURL) {
 
 /** 全体サイズを等分し、[start, end] の配列を返す（end は inclusive） */
 function buildChunkRanges(totalBytes) {
-  const count = Math.min(
-    RANGE_CHUNK_COUNT,
-    Math.max(1, Math.floor(totalBytes / RANGE_MIN_BYTES_PER_CHUNK))
-  );
+  const count = Math.max(1, Math.ceil(totalBytes / RANGE_CHUNK_MAX_BYTES));
   const chunkSize = Math.ceil(totalBytes / count);
   const ranges = [];
   for (let start = 0; start < totalBytes; start += chunkSize) {
