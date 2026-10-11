@@ -158,8 +158,15 @@ async function downloadDirectRangedViaDisk(url, pageURL, outputName, ranges, sen
     throw new Error(result.error ?? "companion concat failed");
   }
 
-  // 成功時は companion 側（handleConcatParts.js）が連結直後に unlink 済みなので、
-  // ここで二重に削除しない。
+  // companion 側（handleConcatParts.js）も連結直後に unlink を試みているが、
+  // ダウンロード直後のファイルは OS 側（特に Windows）で一時的にロックされて
+  // おり fs.unlinkSync が失敗する場合がある（companion はそのエラーを握り潰す
+  // ため、.part が残ったままになる不具合が実際に発生した）。
+  // browser.downloads.removeFile() はブラウザ自身が書き込んだファイルを削除する
+  // ための API なので、ロック解除のタイミングもこちら側の方が確実に扱える。
+  // 片方が失敗してももう片方で消えるよう、成功時も必ず呼ぶ（既に削除済みなら
+  // 単に失敗するだけで、.catch(() => {}) で無視される）。
+  cleanupParts();
   return { ok: true, downloadId: null, filePath: result.filePath };
 }
 
