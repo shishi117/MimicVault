@@ -126,11 +126,18 @@ async function downloadDirectRangedViaDisk(url, pageURL, outputName, ranges, sen
           url: blobUrl,
           filename: `mimicvault_part_${Date.now()}_${i}.part`,
         });
-      } finally {
+      } catch (err) {
         URL.revokeObjectURL(blobUrl);
+        throw err;
       }
 
+      // browser.downloads.download() が返すのは「書き込み開始」の時点でしかない。
+      // 実際に Blob の内容を読み終えてディスクへ書き終わるのは後続の非同期処理
+      // なので、ここで revoke すると書き込み中の Blob が消えて失敗する
+      // （downloadHlsSegmentsInner / 本ファイルのメモリ結合パートと同じ理由で、
+      // revoke は必ず完了を待ってから行う）。
       const done = await awaitDownloadComplete(downloadId);
+      URL.revokeObjectURL(blobUrl);
       if (!done.ok) throw new Error(`パート${i}の保存失敗: ${done.error}`);
 
       const [info] = await browser.downloads.search({ id: downloadId });
