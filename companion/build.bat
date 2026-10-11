@@ -32,4 +32,5 @@ echo Next steps:
 echo   1. Put ffmpeg.exe in this folder (for a zero-dependency build)
 echo   2. Run install.bat to register with Firefox
 echo.
-pause
+
+REM pause
