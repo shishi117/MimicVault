@@ -121,5 +121,19 @@ function getSegmentGroupUrls(tabId, groupKey) {
   return { init: g.init, media, pageURL: g.pageURL, stem };
 }
 
+/**
+ * タブのナビゲーション/クローズ時に断片収集状態をリセットする。
+ * tabMediaStore 側（mediaStore.js）だけを tabs.js で消しても、ここの _segStore が
+ * 残ったままだと recordSegment の `if (g.storeItem)` 分岐が「登録済み」と誤認し、
+ * リセット後の新しい（空の）tabMediaStore に収集ストリーム item を再登録しない
+ * （断片は増え続けるのに一覧に出てこなくなるバグ）。tabMediaStore を消す箇所と
+ * 必ずセットで呼ぶこと。
+ */
+function clearSegmentGroups(tabId) {
+  delete _segStore[tabId];
+}
+
 // node 単体テスト用（拡張機能コンテキストでは module 未定義なのでスキップ）
-if (typeof module !== "undefined") module.exports = { isSegmentUrl, recordSegment, getSegmentGroupUrls };
+if (typeof module !== "undefined") {
+  module.exports = { isSegmentUrl, recordSegment, getSegmentGroupUrls, clearSegmentGroups };
+}

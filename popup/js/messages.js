@@ -43,6 +43,15 @@ if (browser.downloads?.onChanged) {
  * バリアント DL ボタンの表示を更新する。
  */
 browser.runtime.onMessage.addListener((message) => {
+  // パネル iframe は初回作成時にしか init() が走らず、✕で閉じて再度開いても
+  // DOM/JS は使い回されるだけで一覧は再取得されない。そのためページ読み込み
+  // 直後（動画再生前）に自動復元で開いた場合、後から何度開閉しても検出結果が
+  // 反映されないままになる。TOGGLE_PANEL（開く操作）を使い回して再取得する。
+  if (message.type === "TOGGLE_PANEL") {
+    if (message.open) loadActiveTab();
+    return;
+  }
+
   // ── ステップ12: DASH セグメント取得の進捗 ────────────────────────────────
   if (message.type === "DASH_DOWNLOAD_PROGRESS") {
     const { mpdUrl, repId, current, total } = message;

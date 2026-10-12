@@ -35,6 +35,7 @@ browser.runtime.onMessage.addListener((message) => {
 
 browser.tabs.onRemoved.addListener((tabId) => {
   delete tabMediaStore[tabId];
+  clearSegmentGroups(tabId);
   // このタブに紐づくライブ録画セッションを停止（放置するとポーリングとDLが継続する）。
   // stopLiveRecording が残バッファを最終チャンクとしてフラッシュするのでデータは失われない。
   const urls = [...liveRecordingSessions.values()]
@@ -46,6 +47,7 @@ browser.tabs.onRemoved.addListener((tabId) => {
 browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (changeInfo.status === "loading") {
     delete tabMediaStore[tabId];
+    clearSegmentGroups(tabId);
     updateBadge(tabId, 0);
   }
 });
