@@ -11,7 +11,7 @@ global.addToStore = (tabId, item) => {
   (global.tabMediaStore[tabId] ??= new Map()).set(item.url, item);
   return true;
 };
-const { isSegmentUrl, recordSegment, getSegmentGroupUrls } = require("./segmentGroups");
+const { isSegmentUrl, recordSegment, getSegmentGroupUrls, clearSegmentGroups } = require("./segmentGroups");
 
 // ── isSegmentUrl ────────────────────────────────────────────────────────────
 assert.ok(isSegmentUrl("https://h/v/720/5.m4s"),          ".m4s は断片");
@@ -71,6 +71,27 @@ for (let n = 0; n < 10; n++) recordSegment(TAB2, `https://h/dash/${n}.m4s`, "");
 assert.ok(
   ![...global.tabMediaStore[TAB2].values()].some(it => it.isSegmentGroup),
   "マニフェスト検出済みタブでは収集ストリームを出さない"
+);
+
+// ── clearSegmentGroups（タブのリロード/クローズ時に tabMediaStore と一緒に呼ぶ想定） ──
+// tabs.js が tabMediaStore[tabId] だけ消して _segStore を消し忘れると、リロード後の
+// 空の（新しい）ストアに収集ストリーム item が再登録されなくなる回帰を防ぐテスト。
+const TAB4 = 45;
+const dir4 = "https://h/video/reload/";
+for (const n of [1, 2, 3, 4, 5, 6]) recordSegment(TAB4, `${dir4}seg-${n}.m4s`, "https://page/");
+assert.ok(
+  [...global.tabMediaStore[TAB4].values()].some(it => it.isSegmentGroup),
+  "リロード前: 収集ストリーム item が表出する"
+);
+
+// tabs.js の onUpdated("loading") と同じ操作をシミュレート
+delete global.tabMediaStore[TAB4];
+clearSegmentGroups(TAB4);
+
+for (const n of [1, 2, 3, 4, 5, 6]) recordSegment(TAB4, `${dir4}seg-${n}.m4s`, "https://page/");
+assert.ok(
+  global.tabMediaStore[TAB4] && [...global.tabMediaStore[TAB4].values()].some(it => it.isSegmentGroup),
+  "clearSegmentGroups 後の再リロードでも収集ストリーム item が再登録される"
 );
 
 console.log("segmentGroups.test.js: OK");

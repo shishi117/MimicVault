@@ -8,8 +8,9 @@
 
 "use strict";
 
-const PANEL_WIDTH = "380px";
+const PANEL_WIDTH  = "380px";
 const PANEL_ID     = "mimicvault-side-panel";
+const PANEL_ORIGIN = new URL(browser.runtime.getURL("popup/popup.html")).origin;
 
 let panelEl = null;
 
@@ -39,7 +40,17 @@ function createPanel() {
 
 function setPanelOpen(open) {
   if (open) {
-    if (!panelEl) panelEl = createPanel();
+    if (!panelEl) {
+      panelEl = createPanel();
+    } else {
+      // 既存 iframe を使い回すだけだと中身（popup/js/init.js の読み込み一覧取得）は
+      // 初回生成時にしか走らない。動画再生前にパネルが先に開いていた場合、
+      // 再生後に閉じて開き直しても検出結果が反映されないまま（iframe の表示/非表示を
+      // 切り替えているだけで JS は再実行されないため）。開くたびに src を同じ URL に
+      // 設定し直して強制的に読み込み直し、最新の一覧を取り直させる。
+      const iframe = panelEl.querySelector("iframe");
+      if (iframe) iframe.src = browser.runtime.getURL("popup/popup.html") + "?t=" + Date.now();
+    }
     panelEl.style.display = "block";
   } else if (panelEl) {
     panelEl.style.display = "none";
@@ -55,5 +66,16 @@ browser.storage.local.get("panelOpen").then(({ panelOpen }) => {
 browser.runtime.onMessage.addListener((message) => {
   if (message.type === "TOGGLE_PANEL") {
     setPanelOpen(message.open);
+    return;
+  }
+
+  // background の addToStore が新規アイテム検出のたびに送ってくる通知。
+  // iframe（拡張機能ページ、別オリジン）には browser.runtime.onMessage が
+  // 届く保証がないため postMessage で中継する（パネルが開いている時のみ）。
+  if (message.type === "MEDIA_LIST_UPDATED") {
+    if (panelEl && panelEl.style.display !== "none") {
+      const iframe = panelEl.querySelector("iframe");
+      iframe?.contentWindow?.postMessage({ type: "MEDIA_LIST_UPDATED" }, PANEL_ORIGIN);
+    }
   }
 });

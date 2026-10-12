@@ -8,6 +8,19 @@
 // 一部の特権APIが渡らない）。ガード無しで呼ぶと例外で以降の行（下の
 // runtime.onMessage.addListener も含む）が一切実行されず、HLS/DASH/収集
 // ストリーム/ライブ録画/分割DL の進捗通知が軒並み届かなくなる。
+// content/sidePanel.js が MEDIA_LIST_UPDATED（新規アイテム検出通知）を
+// postMessage で中継してくる。パネルは開いた瞬間に一覧を1回取得するだけで
+// その後の検出を自動では拾わないため、通知のたびに取り直す。
+window.addEventListener("message", (event) => {
+  // postMessage の event.origin は「送信元ウィンドウのオリジン」。content script は
+  // ページの window 上で動くため、ここでは拡張機能のオリジンではなく埋め込み先の
+  // サイト（例: https://example.com）になる。期待していた location.origin との
+  // 一致チェックは常に失敗し通知が握りつぶされていたため、代わりに送信元が
+  // 親フレーム（このパネルを埋め込んだページ）かどうかで検証する。
+  if (event.source !== window.parent) return;
+  if (event.data?.type === "MEDIA_LIST_UPDATED") loadActiveTab();
+});
+
 if (browser.downloads?.onChanged) {
   browser.downloads.onChanged.addListener((delta) => {
     const url = downloadIdToUrl.get(delta.id);
