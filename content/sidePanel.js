@@ -39,7 +39,17 @@ function createPanel() {
 
 function setPanelOpen(open) {
   if (open) {
-    if (!panelEl) panelEl = createPanel();
+    if (!panelEl) {
+      panelEl = createPanel();
+    } else {
+      // 既存 iframe を使い回すだけだと中身（popup/js/init.js の読み込み一覧取得）は
+      // 初回生成時にしか走らない。動画再生前にパネルが先に開いていた場合、
+      // 再生後に閉じて開き直しても検出結果が反映されないまま（iframe の表示/非表示を
+      // 切り替えているだけで JS は再実行されないため）。開くたびに src を同じ URL に
+      // 設定し直して強制的に読み込み直し、最新の一覧を取り直させる。
+      const iframe = panelEl.querySelector("iframe");
+      if (iframe) iframe.src = browser.runtime.getURL("popup/popup.html") + "?t=" + Date.now();
+    }
     panelEl.style.display = "block";
   } else if (panelEl) {
     panelEl.style.display = "none";
