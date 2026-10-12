@@ -12,8 +12,14 @@
 // postMessage で中継してくる。パネルは開いた瞬間に一覧を1回取得するだけで
 // その後の検出を自動では拾わないため、通知のたびに取り直す。
 window.addEventListener("message", (event) => {
+  // [DEBUG] 一時的な調査用ログ。原因特定後に削除する。
+  console.log("[DEBUG popup] message event received. origin:", event.origin,
+    "location.origin:", location.origin, "data:", event.data);
   if (event.origin !== location.origin) return;
-  if (event.data?.type === "MEDIA_LIST_UPDATED") loadActiveTab();
+  if (event.data?.type === "MEDIA_LIST_UPDATED") {
+    console.log("[DEBUG popup] loadActiveTab() を再実行");
+    loadActiveTab();
+  }
 });
 
 if (browser.downloads?.onChanged) {

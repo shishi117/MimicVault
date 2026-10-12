@@ -48,7 +48,10 @@ function addToStore(tabId, item) {
   // たびに更新されるのに、パネルを開いた直後に検出が間に合わなかった場合や、
   // 開きっぱなしで検出が進んだ場合に「バッジは増えるのに一覧は0件のまま」に
   // なるため、検出の都度タブへ通知する（content script 経由で iframe に転送）。
-  browser.tabs?.sendMessage(tabId, { type: "MEDIA_LIST_UPDATED" })?.catch(() => {});
+  // [DEBUG] 一時的な調査用ログ。原因特定後に削除する。
+  browser.tabs?.sendMessage(tabId, { type: "MEDIA_LIST_UPDATED" })
+    ?.then(() => console.log("[DEBUG mediaStore] sendMessage OK", tabId, item.url))
+    ?.catch((err) => console.warn("[DEBUG mediaStore] sendMessage FAILED", tabId, item.url, err?.message));
 
   return true;
 }

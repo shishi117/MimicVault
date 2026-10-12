@@ -73,8 +73,13 @@ browser.runtime.onMessage.addListener((message) => {
   // iframe（拡張機能ページ、別オリジン）には browser.runtime.onMessage が
   // 届く保証がないため postMessage で中継する（パネルが開いている時のみ）。
   if (message.type === "MEDIA_LIST_UPDATED") {
+    // [DEBUG] 一時的な調査用ログ。原因特定後に削除する。
+    console.log("[DEBUG sidePanel] MEDIA_LIST_UPDATED received. panelEl:", !!panelEl,
+      "display:", panelEl?.style.display, "origin:", PANEL_ORIGIN);
     if (panelEl && panelEl.style.display !== "none") {
       const iframe = panelEl.querySelector("iframe");
+      console.log("[DEBUG sidePanel] forwarding postMessage. iframe found:", !!iframe,
+        "contentWindow:", !!iframe?.contentWindow);
       iframe?.contentWindow?.postMessage({ type: "MEDIA_LIST_UPDATED" }, PANEL_ORIGIN);
     }
   }
