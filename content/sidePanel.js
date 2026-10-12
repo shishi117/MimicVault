@@ -8,8 +8,9 @@
 
 "use strict";
 
-const PANEL_WIDTH = "380px";
+const PANEL_WIDTH  = "380px";
 const PANEL_ID     = "mimicvault-side-panel";
+const PANEL_ORIGIN = new URL(browser.runtime.getURL("popup/popup.html")).origin;
 
 let panelEl = null;
 
@@ -65,5 +66,16 @@ browser.storage.local.get("panelOpen").then(({ panelOpen }) => {
 browser.runtime.onMessage.addListener((message) => {
   if (message.type === "TOGGLE_PANEL") {
     setPanelOpen(message.open);
+    return;
+  }
+
+  // background の addToStore が新規アイテム検出のたびに送ってくる通知。
+  // iframe（拡張機能ページ、別オリジン）には browser.runtime.onMessage が
+  // 届く保証がないため postMessage で中継する（パネルが開いている時のみ）。
+  if (message.type === "MEDIA_LIST_UPDATED") {
+    if (panelEl && panelEl.style.display !== "none") {
+      const iframe = panelEl.querySelector("iframe");
+      iframe?.contentWindow?.postMessage({ type: "MEDIA_LIST_UPDATED" }, PANEL_ORIGIN);
+    }
   }
 });

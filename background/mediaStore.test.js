@@ -12,6 +12,9 @@ global.browser = {
     setBadgeText: () => {},
     setBadgeBackgroundColor: () => {},
   },
+  tabs: {
+    sendMessage: () => Promise.resolve(),
+  },
 };
 global.isMssUrl = require("./ismToDashUrl").isMssUrl;
 // background/constants.js の該当定数（拡張機能内では同一グローバルスコープ経由で

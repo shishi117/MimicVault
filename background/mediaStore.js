@@ -42,6 +42,14 @@ function addToStore(tabId, item) {
   if (store.has(item.url)) return false;
   store.set(item.url, item);
   updateBadge(tabId, store.size);
+
+  // パネル（content/sidePanel.js が注入する iframe）は開いた瞬間に一覧を1回
+  // 取得するだけで、その後の新規検出を自動では拾わない。バッジは addToStore の
+  // たびに更新されるのに、パネルを開いた直後に検出が間に合わなかった場合や、
+  // 開きっぱなしで検出が進んだ場合に「バッジは増えるのに一覧は0件のまま」に
+  // なるため、検出の都度タブへ通知する（content script 経由で iframe に転送）。
+  browser.tabs?.sendMessage(tabId, { type: "MEDIA_LIST_UPDATED" })?.catch(() => {});
+
   return true;
 }
 
