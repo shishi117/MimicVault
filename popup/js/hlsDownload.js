@@ -91,8 +91,10 @@ async function startHlsSegmentDownload(item, variantUrl, btn) {
     }
     // ── VOD 完了 ─────────────────────────────────────────────────────────────
     hds.state = "complete";
-    // companion（FFmpeg）経由の変換完了は .mp4 なので .ts 注記は不要
-    if (!hds.converting) showHlsTsNote(btn);
+    // companion（FFmpeg）経由の変換が成功した場合のみ .mp4 になるので注記不要。
+    // 変換を試みなかった（companion 未接続）場合も、試みて失敗した場合も .ts が
+    // 残るので、result.remuxError があればその理由を注記に含める。
+    if (!result.filePath) showHlsTsNote(btn, result.remuxError);
   } else {
     hds.state = "error";
     hds.error = result?.error ?? "unknown";
@@ -168,14 +170,17 @@ function applyHlsDownloadButtonState(btn, hds) {
 /**
  * HLS ダウンロード完了後にボタン下へ注記を表示する。
  * .ts ファイルは QuickTime・ブラウザでは再生できず、VLC 等が必要なため。
+ * remuxError があれば、MP4 変換を試みて失敗した理由として併記する。
  */
-function showHlsTsNote(btn) {
+function showHlsTsNote(btn, remuxError) {
   // すでに注記があればスキップ
   if (btn.parentElement?.querySelector(".hls-ts-note")) return;
 
   const note = document.createElement("span");
   note.className = "hls-ts-note";
-  note.textContent = "⚠ .ts 形式 — VLC / mpv で再生可";
+  note.textContent = remuxError
+    ? `⚠ .ts形式(MP4変換失敗: ${remuxError}) — VLC / mpv で再生可`
+    : "⚠ .ts 形式 — VLC / mpv で再生可";
   btn.insertAdjacentElement("afterend", note);
 }
 

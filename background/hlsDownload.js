@@ -186,6 +186,9 @@ async function downloadHlsSegmentsInner(mediaPlaylistUrl, pageURL, tabId) {
   // 1バイトずつの文字列結合 + 全体コピーが重すぎて実質ハングしたため不採用。
   // 代わりに browser.downloads でディスクに書き出した実ファイルのパスを渡し、
   // companion 側はそのパスを直接 ffmpeg -i に渡す（バイト列のやり取りをしない）。
+  // remuxError: 未設定=companion未接続/試行せず、文字列=試行して失敗した理由
+  // （ポップアップ側が .ts のまま保持する注記にそのまま表示する）。
+  let remuxError;
   if (companionPort) {
     try {
       const [info] = await browser.downloads.search({ id: downloadId });
@@ -206,13 +209,15 @@ async function downloadHlsSegmentsInner(mediaPlaylistUrl, pageURL, tabId) {
           browser.downloads.removeFile(downloadId).catch(() => {});
           return { ok: true, downloadId: null, filePath: result.filePath };
         }
-        console.warn("[HLS] remux 失敗、.ts のまま保持:", result.error);
+        remuxError = result.error ?? "remux failed";
+        console.warn("[HLS] remux 失敗、.ts のまま保持:", remuxError);
       }
     } catch (err) {
-      console.warn("[HLS] remux 例外、.ts のまま保持:", err.message);
+      remuxError = err.message;
+      console.warn("[HLS] remux 例外、.ts のまま保持:", remuxError);
     }
   }
 
-  return { ok: true, downloadId };
+  return { ok: true, downloadId, remuxError };
 }
 
