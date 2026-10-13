@@ -248,6 +248,13 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     }
 
+    // パネル iframe が一括DL中の各行の進捗をポーリングで取りに来る
+    // （bookmarkProgressState 参照。GET_HLS_PROGRESS と同じ理由）。
+    case "GET_BOOKMARK_PROGRESS": {
+      sendResponse(bookmarkProgressState.get(message.bookmarkId) ?? null);
+      return true;
+    }
+
     // ポップアップの「クリア」ボタンからの要求
     case "CLEAR_MEDIA_LIST": {
       delete tabMediaStore[message.tabId];

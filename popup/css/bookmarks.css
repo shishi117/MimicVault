@@ -47,6 +47,12 @@
   white-space: nowrap;
 }
 
+.bookmark-size {
+  font-size: 11px;
+  color: var(--text-sub);
+  white-space: nowrap;
+}
+
 .bookmark-status {
   font-size: 11px;
   color: var(--text-sub);

@@ -138,8 +138,20 @@ async function gateDownloadResult(r) {
   return { ok: true };
 }
 
+// ─── 行ごとの進捗ポーリング ────────────────────────────────────────────────────
+// getProgress() が null 以外を返すたびに emit("downloading", ...) する。
+// 転送中のみ存在する短命タイマーなので setInterval で十分（他の進捗系と同じ700ms間隔）。
+function pollRowProgress(getProgress, emit) {
+  const timer = setInterval(async () => {
+    let p;
+    try { p = await getProgress(); } catch (_) { return; }
+    if (p) emit("downloading", p);
+  }, 700);
+  return () => clearInterval(timer);
+}
+
 // ─── 検出メディアを既存DL経路へ委譲 ───────────────────────────────────────────
-async function downloadDetected(item) {
+async function downloadDetected(item, emit) {
   const url      = item.url;
   const pageURL  = item.pageURL || "";
   const mimeHint = item.mimeHint || "";
@@ -149,13 +161,29 @@ async function downloadDetected(item) {
   if (isHls || isDash) {
     // ストリーミングは companion（FFmpeg）必須。未接続なら退避しない（全DLと同方針）。
     if (!companionPort) return { ok: false, error: "companion未接続" };
-    const r = isHls
-      ? await downloadHlsSegments(url, pageURL, null)
-      : await autoDashMux({ url, pageURL });
-    return await gateDownloadResult(r);
+
+    if (isHls) {
+      // hlsDownload.js が既に hlsProgressState へセグメント数/変換%を書いているので
+      // それを読むだけ（current/total はセグメント数 or %、どちらでも比率は0-100%）。
+      const stopPoll = pollRowProgress(() => {
+        const p = hlsProgressState.get(url);
+        if (!p || !(p.total > 0)) return null;
+        return { percent: Math.round((p.current / p.total) * 100) };
+      }, emit);
+      try {
+        return await gateDownloadResult(await downloadHlsSegments(url, pageURL, null));
+      } finally {
+        stopPoll();
+      }
+    }
+
+    // DASH: 既知の簡略化 — downloadDashAndMux.js 側に進捗通知口が無いため
+    // パーセント表示はできず「DL中」のみになる。追加するなら hlsProgressState と
+    // 同じ要領で dashSegments.js のセグメント取得ループに進捗コールバックを足す。
+    return await gateDownloadResult(await autoDashMux({ url, pageURL }));
   }
 
-  // 直接ファイル
+  // 直接ファイル: browser.downloads.search でバイト単位の進捗を取れる
   const filename = applyFilenameTemplate(inferStem(url), inferExt(url, mimeHint));
   if (pageURL) pendingReferers.set(url, pageURL);
   let downloadId;
@@ -165,14 +193,30 @@ async function downloadDetected(item) {
     pendingReferers.delete(url);
     return { ok: false, error: e.message };
   }
-  return await awaitDownloadComplete(downloadId);
+  const stopPoll = pollRowProgress(async () => {
+    const [info] = await browser.downloads.search({ id: downloadId });
+    if (!info) return null;
+    const totalBytes = info.totalBytes > 0 ? info.totalBytes : null;
+    return {
+      bytesReceived: info.bytesReceived,
+      totalBytes,
+      percent: totalBytes ? Math.round((info.bytesReceived / totalBytes) * 100) : null,
+    };
+  }, emit);
+  try {
+    return await awaitDownloadComplete(downloadId);
+  } finally {
+    stopPoll();
+  }
 }
 
 // ─── 1件処理: 開く→再生→検出→DL→退避→閉じる ────────────────────────────────
 async function processOneBookmark(node) {
   const bookmarkId = node.id;
-  const emit = (state, extra) =>
-    browser.runtime.sendMessage({ type: "BOOKMARK_DL_PROGRESS", bookmarkId, state, ...extra }).catch(() => {});
+  const emit = (state, extra) => {
+    bookmarkProgressState.set(bookmarkId, { state, ...extra });
+    return browser.runtime.sendMessage({ type: "BOOKMARK_DL_PROGRESS", bookmarkId, state, ...extra }).catch(() => {});
+  };
 
   let tab;
   try {
@@ -187,7 +231,7 @@ async function processOneBookmark(node) {
     setFilenameStemOverride(bookmarkFilenameStem(node.title));
     let dlResult;
     try {
-      dlResult = await downloadDetected(item);
+      dlResult = await downloadDetected(item, emit);
     } finally {
       setFilenameStemOverride(null);
     }
