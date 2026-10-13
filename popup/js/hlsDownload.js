@@ -92,9 +92,11 @@ async function startHlsSegmentDownload(item, variantUrl, btn) {
     // ── VOD 完了 ─────────────────────────────────────────────────────────────
     hds.state = "complete";
     // companion（FFmpeg）経由の変換が成功した場合のみ .mp4 になるので注記不要。
-    // 変換を試みなかった（companion 未接続）場合も、試みて失敗した場合も .ts が
-    // 残るので、result.remuxError があればその理由を注記に含める。
-    if (!result.filePath) showHlsTsNote(btn, result.remuxError);
+    // fallbackExt が ts の場合のみ「VLC等が必要」の注記を出す（mp4 で保存された
+    // 場合は fMP4 のまま既に再生可能なので、変換失敗していても注記は不要）。
+    if (!result.filePath && result.fallbackExt === "ts") {
+      showHlsTsNote(btn, result.remuxError);
+    }
   } else {
     hds.state = "error";
     hds.error = result?.error ?? "unknown";

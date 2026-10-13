@@ -31,6 +31,12 @@
  * ステップ10 追加フィールド:
  *   ended          — #EXT-X-ENDLIST が存在する場合 true（VOD）、ない場合 false（ライブ）
  *   targetDuration — #EXT-X-TARGETDURATION の値（秒）。省略時は 6
+ *
+ * initUri — #EXT-X-MAP:URI="..." の絶対 URL（fMP4/CMAF 配信の初期化セグメント）。
+ *   無ければ null（従来どおり MPEG-TS 配信）。
+ *   既知の簡略化: BYTERANGE 属性（単一ファイルの一部を初期化セグメントにする形式）
+ *   や、セグメント途中での EXT-X-MAP 切り替えは未対応（EXT-X-KEY と同じ方針で
+ *   最初に登場したものだけを使う）。必要になればその時に対応する。
  */
 function parseMediaPlaylist(text, baseURL) {
   const lines = text.split(/\r?\n/);
@@ -84,6 +90,16 @@ function parseMediaPlaylist(text, baseURL) {
     // METHOD=NONE または未知の METHOD はキーなしとして扱う
   }
 
+  // ── EXT-X-MAP の解析（fMP4/CMAF 初期化セグメント） ──────────────────────────
+  let initUri = null;
+  const mapLine = lines.find(l => l.startsWith("#EXT-X-MAP:"));
+  if (mapLine) {
+    const uriMatch = mapLine.match(/URI="([^"]+)"/i);
+    if (uriMatch) {
+      try { initUri = new URL(uriMatch[1], baseURL).href; } catch (_) {}
+    }
+  }
+
   // ── セグメント URI の抽出 ＋ 総再生時間の集計 ────────────────────────────────
   const segments = [];
   let totalDuration = 0;   // #EXTINF 値の合計（秒）= VOD の総尺
@@ -103,6 +119,11 @@ function parseMediaPlaylist(text, baseURL) {
     }
   }
 
-  return { keyInfo, mediaSequence, segments, ended, targetDuration, totalDuration };
+  return { keyInfo, mediaSequence, segments, ended, targetDuration, totalDuration, initUri };
+}
+
+// node 単体テスト用（拡張機能コンテキストでは module 未定義なのでスキップ）
+if (typeof module !== "undefined") {
+  module.exports = { parseMediaPlaylist };
 }
 

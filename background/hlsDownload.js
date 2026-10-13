@@ -74,6 +74,25 @@ async function downloadHlsSegmentsInner(mediaPlaylistUrl, pageURL, tabId) {
     }
   }
 
+  // ── 2.5 fMP4(CMAF) 初期化セグメント fetch ────────────────────────────────
+  // #EXT-X-MAP があるプレイリストは MPEG-TS ではなく fMP4 で配信されている。
+  // メディア断片（moof+mdat）だけでは moov/trex が無く再生できないため、
+  // 初期化セグメント（ftyp+moov）を先頭に結合する必要がある
+  // （収集ストリーム保存 downloadSegmentGroup.js の init 扱いと同じ考え方）。
+  let initBuffer = null;
+  if (parsed.initUri) {
+    if (pageURL) pendingReferers.set(parsed.initUri, pageURL);
+    try {
+      const res = await fetch(parsed.initUri);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      initBuffer = await res.arrayBuffer();
+    } catch (err) {
+      return { ok: false, error: `初期化セグメント取得失敗: ${err.message}` };
+    } finally {
+      pendingReferers.delete(parsed.initUri);
+    }
+  }
+
   // ── 3. 並列セグメント fetch（＋必要なら復号） ─────────────────────────────
   const total = parsed.segments.length;
 
@@ -137,9 +156,15 @@ async function downloadHlsSegmentsInner(mediaPlaylistUrl, pageURL, tabId) {
   }
 
   // ── 4. ArrayBuffer 結合 → Blob ────────────────────────────────────────────
-  const totalBytes = buffers.reduce((sum, b) => sum + b.byteLength, 0);
-  const combined   = new Uint8Array(totalBytes);
+  // initBuffer があれば先頭に結合する（fMP4: ftyp+moov に続けて moof+mdat の列）。
+  const segBytes    = buffers.reduce((sum, b) => sum + b.byteLength, 0);
+  const totalBytes  = (initBuffer?.byteLength ?? 0) + segBytes;
+  const combined    = new Uint8Array(totalBytes);
   let offset = 0;
+  if (initBuffer) {
+    combined.set(new Uint8Array(initBuffer), offset);
+    offset += initBuffer.byteLength;
+  }
   for (const buf of buffers) {
     combined.set(new Uint8Array(buf), offset);
     offset += buf.byteLength;
@@ -149,16 +174,18 @@ async function downloadHlsSegmentsInner(mediaPlaylistUrl, pageURL, tabId) {
   // 取れればそちらを優先する（以降の MP4/TS どちらの保存でも共通で使う）。
   const hlsStem = await inferTitleStem(mediaPlaylistUrl, tabId);
 
-  // ── 4.5 まず .ts として保存する（確実に動作する経路） ─────────────────────
-  // HLS セグメント結合物は必ず MPEG-TS コンテナなので拡張子を .ts に強制する。
-  // playlist URL が video.mp4?format=m3u8 のような形でも誤った .mp4 にならない。
-  const blob    = new Blob([combined], { type: "video/mp2t" });
+  // ── 4.5 まずそのまま保存する（確実に動作する経路） ───────────────────────────
+  // fMP4（EXT-X-MAP あり）は init+moof+mdat のまま多くのプレイヤーで再生可能な
+  // ので拡張子は mp4、無ければ従来どおり MPEG-TS 結合物なので拡張子は ts にする。
+  const isFmp4        = !!initBuffer;
+  const fallbackExt   = isFmp4 ? "mp4" : "ts";
+  const blob    = new Blob([combined], { type: isFmp4 ? "video/mp4" : "video/mp2t" });
   const blobUrl = URL.createObjectURL(blob);
-  const tsFilename = applyFilenameTemplate(hlsStem, "ts");
+  const fallbackFilename = applyFilenameTemplate(hlsStem, fallbackExt);
 
   let downloadId;
   try {
-    downloadId = await browser.downloads.download({ url: blobUrl, filename: tsFilename });
+    downloadId = await browser.downloads.download({ url: blobUrl, filename: fallbackFilename });
   } catch (err) {
     URL.revokeObjectURL(blobUrl);
     return { ok: false, error: err.message };
@@ -168,17 +195,17 @@ async function downloadHlsSegmentsInner(mediaPlaylistUrl, pageURL, tabId) {
   // 書き終わるのは非同期。ここで実際の完了（または中断）を待たずに ok:true を
   // 返すと、ポップアップ側は「✓完了」と表示するのに実ファイルは後から失敗して
   // 存在しない、という事故になる。companion の有無に関わらず必ず実完了を待つ。
-  const tsDone = await awaitDownloadComplete(downloadId);
+  const fallbackDone = await awaitDownloadComplete(downloadId);
   URL.revokeObjectURL(blobUrl);
 
-  if (!tsDone.ok) {
-    return { ok: false, error: tsDone.error ?? "download_failed" };
+  if (!fallbackDone.ok) {
+    return { ok: false, error: fallbackDone.error ?? "download_failed" };
   }
 
-  // ── 4.6 companion 接続時は、保存した .ts をローカルファイルのまま MP4 に remux ──
+  // ── 4.6 companion 接続時は、保存したファイルをローカルファイルのまま MP4 に remux ──
   // downloadHlsViaCompanion（FFmpeg が自前で URL を直接 fetch する経路）が
   // anti-leech な配信元で失敗してここに落ちてきた場合でも、ブラウザの fetch
-  // （Referer 注入済み）で取得済みの .ts ファイルをそのまま companion に渡せば、
+  // （Referer 注入済み）で取得済みのファイルをそのまま companion に渡せば、
   // FFmpeg はネットワークに触れずローカルファイルを読むだけで済む。
   //
   // 既知の上限: バイト列を base64 化して Native Messaging 経由で渡す方式
@@ -187,7 +214,8 @@ async function downloadHlsSegmentsInner(mediaPlaylistUrl, pageURL, tabId) {
   // 代わりに browser.downloads でディスクに書き出した実ファイルのパスを渡し、
   // companion 側はそのパスを直接 ffmpeg -i に渡す（バイト列のやり取りをしない）。
   // remuxError: 未設定=companion未接続/試行せず、文字列=試行して失敗した理由
-  // （ポップアップ側が .ts のまま保持する注記にそのまま表示する）。
+  // （ポップアップ側は fallbackExt が ts の時だけ注記にそのまま表示する。
+  //   fallbackExt が mp4 なら既に再生可能なので、変換失敗は console のみでよい）。
   let remuxError;
   if (companionPort) {
     try {
@@ -210,14 +238,14 @@ async function downloadHlsSegmentsInner(mediaPlaylistUrl, pageURL, tabId) {
           return { ok: true, downloadId: null, filePath: result.filePath };
         }
         remuxError = result.error ?? "remux failed";
-        console.warn("[HLS] remux 失敗、.ts のまま保持:", remuxError);
+        console.warn(`[HLS] remux 失敗、.${fallbackExt} のまま保持:`, remuxError);
       }
     } catch (err) {
       remuxError = err.message;
-      console.warn("[HLS] remux 例外、.ts のまま保持:", remuxError);
+      console.warn(`[HLS] remux 例外、.${fallbackExt} のまま保持:`, remuxError);
     }
   }
 
-  return { ok: true, downloadId, remuxError };
+  return { ok: true, downloadId, remuxError, fallbackExt };
 }
 
