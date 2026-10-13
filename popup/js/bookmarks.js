@@ -38,21 +38,15 @@ function initBookmarkPanel() {
 }
 
 // ─── フォルダ一覧を <select> に流し込む ───────────────────────────────────────
+// このパネルは content script が注入する iframe 内で動くため browser.bookmarks に
+// 直接アクセスできない（Firefoxの制限）。background にメッセージで取得を依頼する。
 async function loadBookmarkFolders() {
-  let tree;
-  try { tree = await browser.bookmarks.getTree(); }
+  let res;
+  try { res = await browser.runtime.sendMessage({ type: "GET_BOOKMARK_FOLDERS" }); }
   catch (e) { showToast("ブックマーク取得失敗: " + e.message); return; }
+  if (!res?.ok) { showToast("ブックマーク取得失敗: " + (res?.error ?? "unknown")); return; }
 
-  const folders = [];
-  (function walk(nodes, depth) {
-    for (const n of nodes) {
-      if (n.url) continue;                       // リンクはフォルダではない
-      const hasTitle = !!n.title;                // ルート直下の匿名コンテナはタイトル空
-      if (hasTitle) folders.push({ id: n.id, title: n.title, depth });
-      if (n.children) walk(n.children, hasTitle ? depth + 1 : depth);
-    }
-  })(tree, 0);
-
+  const folders = res.folders;
   elBookmarkFolder.innerHTML = "";
   for (const f of folders) {
     const opt = document.createElement("option");
@@ -69,11 +63,12 @@ async function loadBookmarkChildren(folderId) {
   elBookmarkList.innerHTML = "";
   if (!folderId) return;
 
-  let children;
-  try { children = await browser.bookmarks.getChildren(folderId); }
+  let res;
+  try { res = await browser.runtime.sendMessage({ type: "GET_BOOKMARK_CHILDREN", folderId }); }
   catch (e) { showToast("取得失敗: " + e.message); return; }
+  if (!res?.ok) { showToast("取得失敗: " + (res?.error ?? "unknown")); return; }
 
-  const links = children.filter(c => c.url);
+  const links = res.links;
   elBookmarkEmpty.classList.toggle("hidden", links.length > 0);
 
   for (const b of links) {

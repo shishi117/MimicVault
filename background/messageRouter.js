@@ -233,6 +233,21 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     }
 
+    // パネル（iframe）は browser.bookmarks に直接アクセスできないため仲介
+    case "GET_BOOKMARK_FOLDERS": {
+      getBookmarkFolders()
+        .then(folders => sendResponse({ ok: true, folders }))
+        .catch(err    => sendResponse({ ok: false, error: err.message }));
+      return true;
+    }
+
+    case "GET_BOOKMARK_CHILDREN": {
+      getBookmarkChildren(message.folderId)
+        .then(links => sendResponse({ ok: true, links }))
+        .catch(err  => sendResponse({ ok: false, error: err.message }));
+      return true;
+    }
+
     // ポップアップの「クリア」ボタンからの要求
     case "CLEAR_MEDIA_LIST": {
       delete tabMediaStore[message.tabId];

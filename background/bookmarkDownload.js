@@ -210,6 +210,29 @@ async function processOneBookmark(node) {
   }
 }
 
+// ─── フォルダ一覧 / 子ブックマーク取得 ─────────────────────────────────────────
+// パネルは content script が注入する iframe 内で動くため browser.bookmarks に
+// 直接アクセスできない（Firefoxの制限）。background（真のトップレベル拡張機能
+// コンテキスト）が代行し、メッセージ経由で結果を返す。
+async function getBookmarkFolders() {
+  const tree = await browser.bookmarks.getTree();
+  const folders = [];
+  (function walk(nodes, depth) {
+    for (const n of nodes) {
+      if (n.url) continue;                       // リンクはフォルダではない
+      const hasTitle = !!n.title;                // ルート直下の匿名コンテナはタイトル空
+      if (hasTitle) folders.push({ id: n.id, title: n.title, depth });
+      if (n.children) walk(n.children, hasTitle ? depth + 1 : depth);
+    }
+  })(tree, 0);
+  return folders;
+}
+
+async function getBookmarkChildren(folderId) {
+  const children = await browser.bookmarks.getChildren(folderId);
+  return children.filter(c => c.url).map(c => ({ id: c.id, title: c.title, url: c.url }));
+}
+
 // ─── エントリ: 選択ブックマークを逐次処理 ─────────────────────────────────────
 async function downloadBookmarks(ids) {
   const results = [];
