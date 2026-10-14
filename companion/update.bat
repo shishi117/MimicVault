@@ -7,6 +7,7 @@ taskkill /f /im firefox.exe
 
 del /f /q "mimic-vault.exe"
 
+call ffmpeg_deploy.bat
 call build.bat
 call install.bat
 
