@@ -91,10 +91,10 @@ goto :end
 
 :error
 echo ˆ—‚ğ’†’f‚µ‚Ü‚µ‚½B
-pause
+REM pause
 endlocal
 exit /b 1
 
 :end
 endlocal
-pause
+REM pause
