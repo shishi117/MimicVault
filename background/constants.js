@@ -52,3 +52,12 @@ const hlsProgressState = new Map();
  */
 const directDownloadProgressState = new Map();
 
+// ─── ブックマーク一括DLの行ごとの進捗の問い合わせ用キャッシュ ─────────────────
+/**
+ * hlsProgressState / directDownloadProgressState と同じ理由（ブロードキャストが
+ * iframe パネルに届かないことがある）で、bookmarkDownload.js の進捗もここに保持し、
+ * popup/js/bookmarks.js が GET_BOOKMARK_PROGRESS で定期的に問い合わせて補完する。
+ * key: bookmarkId, value: { state, percent?, bytesReceived?, totalBytes?, reason? }
+ */
+const bookmarkProgressState = new Map();
+

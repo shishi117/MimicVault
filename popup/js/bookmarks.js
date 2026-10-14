@@ -33,26 +33,20 @@ function initBookmarkPanel() {
 
   // background からの進捗を該当行に反映
   browser.runtime.onMessage.addListener((msg) => {
-    if (msg?.type === "BOOKMARK_DL_PROGRESS") updateBookmarkRow(msg.bookmarkId, msg.state, msg.reason);
+    if (msg?.type === "BOOKMARK_DL_PROGRESS") updateBookmarkRow(msg.bookmarkId, msg.state, msg);
   });
 }
 
 // ─── フォルダ一覧を <select> に流し込む ───────────────────────────────────────
+// このパネルは content script が注入する iframe 内で動くため browser.bookmarks に
+// 直接アクセスできない（Firefoxの制限）。background にメッセージで取得を依頼する。
 async function loadBookmarkFolders() {
-  let tree;
-  try { tree = await browser.bookmarks.getTree(); }
+  let res;
+  try { res = await browser.runtime.sendMessage({ type: "GET_BOOKMARK_FOLDERS" }); }
   catch (e) { showToast("ブックマーク取得失敗: " + e.message); return; }
+  if (!res?.ok) { showToast("ブックマーク取得失敗: " + (res?.error ?? "unknown")); return; }
 
-  const folders = [];
-  (function walk(nodes, depth) {
-    for (const n of nodes) {
-      if (n.url) continue;                       // リンクはフォルダではない
-      const hasTitle = !!n.title;                // ルート直下の匿名コンテナはタイトル空
-      if (hasTitle) folders.push({ id: n.id, title: n.title, depth });
-      if (n.children) walk(n.children, hasTitle ? depth + 1 : depth);
-    }
-  })(tree, 0);
-
+  const folders = res.folders;
   elBookmarkFolder.innerHTML = "";
   for (const f of folders) {
     const opt = document.createElement("option");
@@ -69,11 +63,12 @@ async function loadBookmarkChildren(folderId) {
   elBookmarkList.innerHTML = "";
   if (!folderId) return;
 
-  let children;
-  try { children = await browser.bookmarks.getChildren(folderId); }
+  let res;
+  try { res = await browser.runtime.sendMessage({ type: "GET_BOOKMARK_CHILDREN", folderId }); }
   catch (e) { showToast("取得失敗: " + e.message); return; }
+  if (!res?.ok) { showToast("取得失敗: " + (res?.error ?? "unknown")); return; }
 
-  const links = children.filter(c => c.url);
+  const links = res.links;
   elBookmarkEmpty.classList.toggle("hidden", links.length > 0);
 
   for (const b of links) {
@@ -90,10 +85,13 @@ async function loadBookmarkChildren(folderId) {
     title.textContent = b.title || b.url;
     title.title = b.url;
 
+    const size = document.createElement("span");
+    size.className = "bookmark-size";
+
     const status = document.createElement("span");
     status.className = "bookmark-status";
 
-    li.append(cb, title, status);
+    li.append(cb, title, size, status);
     elBookmarkList.appendChild(li);
   }
 }
@@ -109,6 +107,7 @@ async function startBookmarkDownload() {
   elBookmarkDlBtn.disabled = true;
   elBookmarkDlBtn.textContent = "…";
   ids.forEach(id => updateBookmarkRow(id, "queued"));
+  startBookmarkPolling(ids);
 
   try {
     // 逐次処理のため応答は全件完了後（ポップアップを閉じても background は継続する）
@@ -118,26 +117,82 @@ async function startBookmarkDownload() {
     showToast(`${ok}/${ids.length} 件 完了`);
   } catch (e) {
     showToast("一括DL失敗: " + e.message);
+  } finally {
+    await stopBookmarkPolling(ids);
   }
 
   elBookmarkDlBtn.disabled = false;
   elBookmarkDlBtn.textContent = "選択をDL";
 }
 
+// ─── 進捗ポーリング（queued→detecting→downloading→done/failed を一括監視） ─────
+// BOOKMARK_DL_PROGRESS のブロードキャストは、ページに重ねるパネル（content script
+// 注入の iframe）には届かないことがある（届かない環境では「着手前」から一切
+// 進まなくなる）。ブロードキャストに頼らず、DL開始と同時に全件分を能動的に
+// ポーリングすることで、ブロードキャストの有無に関わらず状態を反映する。
+const bookmarkPollingIds = new Set();
+let   bookmarkPollTimer  = null;
+
+async function pollBookmarksOnce(ids) {
+  const results = await Promise.all(ids.map(async id => {
+    try { return [id, await browser.runtime.sendMessage({ type: "GET_BOOKMARK_PROGRESS", bookmarkId: id })]; }
+    catch (_) { return [id, null]; }
+  }));
+  for (const [id, p] of results) {
+    if (!p) continue;
+    updateBookmarkRow(id, p.state, p);
+    if (p.state === "done" || p.state === "failed") bookmarkPollingIds.delete(id);
+  }
+}
+
+function startBookmarkPolling(ids) {
+  ids.forEach(id => bookmarkPollingIds.add(id));
+  if (bookmarkPollTimer) return;
+  bookmarkPollTimer = setInterval(async () => {
+    await pollBookmarksOnce([...bookmarkPollingIds]);
+    if (!bookmarkPollingIds.size) { clearInterval(bookmarkPollTimer); bookmarkPollTimer = null; }
+  }, 700);
+}
+
+// DOWNLOAD_BOOKMARKS が応答を返した時点で background 側は全件すでに最終状態
+// （done/failed）になっているはずなので、タイマーを止める前に一度だけ
+// 最新状態を取りに行ってから反映する（最後のポーリングtickを待たずに
+// 「DL中」のまま表示が止まってしまうのを防ぐ）。
+async function stopBookmarkPolling(ids) {
+  await pollBookmarksOnce(ids);
+  if (!bookmarkPollingIds.size && bookmarkPollTimer) { clearInterval(bookmarkPollTimer); bookmarkPollTimer = null; }
+}
+
 // ─── 行の状態表示を更新 ───────────────────────────────────────────────────────
-function updateBookmarkRow(id, state, reason) {
+// extra: { percent?, bytesReceived?, totalBytes?, reason? }（BOOKMARK_DL_PROGRESS /
+// GET_BOOKMARK_PROGRESS の中身をそのまま渡せる形）
+function formatBytes(n) {
+  if (!(n > 0)) return "";
+  if (n < 1024 * 1024) return Math.round(n / 1024) + "KB";
+  return (n / (1024 * 1024)).toFixed(1) + "MB";
+}
+
+function updateBookmarkRow(id, state, extra = {}) {
   const li = elBookmarkList.querySelector(`.bookmark-item[data-id="${id}"]`);
   if (!li) return;
   const status = li.querySelector(".bookmark-status");
+  const size   = li.querySelector(".bookmark-size");
+
   const label = {
-    queued:      "…",
+    queued:      "着手前",
     detecting:   "検出中",
-    downloading: "DL中",
-    done:        "✓",
+    downloading: extra.percent != null ? `${extra.percent}%` : "DL中",
+    done:        "完了",
     failed:      "✗",
   }[state] ?? state;
   status.textContent = label;
   status.classList.toggle("done",   state === "done");
   status.classList.toggle("failed", state === "failed");
-  if (state === "failed" && reason) li.title = "失敗: " + reason;
+  if (state === "failed" && extra.reason) li.title = "失敗: " + extra.reason;
+
+  if (extra.bytesReceived != null) {
+    const recv = formatBytes(extra.bytesReceived);
+    const tot  = formatBytes(extra.totalBytes);
+    size.textContent = tot ? `${recv} / ${tot}` : recv;
+  }
 }
