@@ -18,7 +18,6 @@ const BOOKMARK_MEDIA_TIMEOUT    = 20000;   // メディア検出待ちの上限
 const BOOKMARK_POLL_INTERVAL    = 1000;    // 検出ポーリング間隔
 const BOOKMARK_DL_TIMEOUT       = 600000;  // 個別DL完了待ちの上限（10分）
 const DOWNLOADED_FOLDER_TITLE   = "ダウンロード済み";
-const BOOKMARK_MENU_ROOT        = "menu________"; // Firefox ブックマークメニュー root GUID
 
 // 自動再生ナッジ: 最大面積の <video> を muted で play() ＋クリック試行。
 // autoplay を許すサイトで有効。独自プレーヤー/DRM は無反応 → 検出タイムアウト＝退避しない。
@@ -48,23 +47,27 @@ function bookmarkFilenameStem(title) {
 }
 
 // ─── 「ダウンロード済み」フォルダの確保 ───────────────────────────────────────
-let downloadedFolderId = null;
+// 元のブックマークと同じ場所に作る（固定のブックマークメニュー直下ではない）。
+// フォルダごとにキャッシュする: 同じ親フォルダ内で複数件処理する一括DL中に
+// getChildren を毎回叩かずに済む（逐次処理なので競合の心配はない）。
+const downloadedFolderCache = new Map(); // parentId -> ダウンロード済みフォルダid
 
-async function ensureDownloadedFolder() {
+async function ensureDownloadedFolder(parentId) {
   // キャッシュがユーザー削除で無効化されている可能性を確認
-  if (downloadedFolderId) {
-    try { await browser.bookmarks.get(downloadedFolderId); return downloadedFolderId; }
-    catch (_) { downloadedFolderId = null; }
+  const cached = downloadedFolderCache.get(parentId);
+  if (cached) {
+    try { await browser.bookmarks.get(cached); return cached; }
+    catch (_) { downloadedFolderCache.delete(parentId); }
   }
-  const children = await browser.bookmarks.getChildren(BOOKMARK_MENU_ROOT);
+  const children = await browser.bookmarks.getChildren(parentId);
   const existing = children.find(c => !c.url && c.title === DOWNLOADED_FOLDER_TITLE);
-  if (existing) { downloadedFolderId = existing.id; return downloadedFolderId; }
+  if (existing) { downloadedFolderCache.set(parentId, existing.id); return existing.id; }
   const created = await browser.bookmarks.create({
-    parentId: BOOKMARK_MENU_ROOT,
-    title:    DOWNLOADED_FOLDER_TITLE,
+    parentId,
+    title: DOWNLOADED_FOLDER_TITLE,
   });
-  downloadedFolderId = created.id;
-  return downloadedFolderId;
+  downloadedFolderCache.set(parentId, created.id);
+  return created.id;
 }
 
 // ─── 検出候補から1件選ぶ ──────────────────────────────────────────────────────
@@ -238,8 +241,10 @@ async function processOneBookmark(node) {
     if (!dlResult.ok) { emit("failed", { reason: dlResult.error }); return { bookmarkId, ok: false, error: dlResult.error }; }
 
     // 成功したものだけ退避（移動自体の失敗はDL済みなので致命的でない）
+    // 退避先は元のブックマークと同じフォルダ内の「ダウンロード済み」（固定の
+    // ブックマークメニュー直下ではない。node.parentId は選択時点の元の親）。
     try {
-      const parentId = await ensureDownloadedFolder();
+      const parentId = await ensureDownloadedFolder(node.parentId);
       await browser.bookmarks.move(bookmarkId, { parentId });
     } catch (e) {
       console.warn("[bookmarkDL] 退避失敗:", e.message);
