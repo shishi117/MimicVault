@@ -70,18 +70,27 @@ async function ensureDownloadedFolder(parentId) {
   return created.id;
 }
 
+// 同ティア内では contentLength（判明していれば）が最大のものを選ぶ。
+// 広告/サムネイル動画は本編より明らかに小さいことが多いため、先頭を
+// 無条件採用するより誤選択を減らせる（sizeが不明なものはnull=0扱いで最後に回る）。
+function pickLargest(candidates) {
+  return candidates.reduce((best, it) =>
+    (it.contentLength ?? 0) > (best.contentLength ?? 0) ? it : best);
+}
+
 // ─── 検出候補から1件選ぶ ──────────────────────────────────────────────────────
 // ヒューリスティック: ストリーミング（m3u8/mpd）優先 → video → 先頭。
 // 既知の簡略化: 動画ページの本編は通常ストリーミング。広告等の直リンクmp4を避けるため
 //   ストリーミングを最優先する。誤選択の可能性は許容（1件のみ処理）。
 function pickMediaItem(items) {
   if (!items.length) return null;
-  const streaming = items.find(it =>
+  const streaming = items.filter(it =>
     /\.m3u8(\?|#|$)/i.test(it.url) || /\.mpd(\?|#|$)/i.test(it.url) ||
     (it.mimeHint || "").includes("mpegurl") || (it.mimeHint || "").includes("dash+xml"));
-  if (streaming) return streaming;
-  const video = items.find(it => it.tag === "video" || /^video\//.test(it.mimeHint || ""));
-  return video || items[0];
+  if (streaming.length) return pickLargest(streaming);
+  const videos = items.filter(it => it.tag === "video" || /^video\//.test(it.mimeHint || ""));
+  if (videos.length) return pickLargest(videos);
+  return items[0];
 }
 
 // ─── タブ読み込み完了待ち ─────────────────────────────────────────────────────

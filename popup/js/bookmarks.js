@@ -107,6 +107,7 @@ async function startBookmarkDownload() {
   elBookmarkDlBtn.disabled = true;
   elBookmarkDlBtn.textContent = "…";
   ids.forEach(id => updateBookmarkRow(id, "queued"));
+  startBookmarkPolling(ids);
 
   try {
     // 逐次処理のため応答は全件完了後（ポップアップを閉じても background は継続する）
@@ -116,17 +117,55 @@ async function startBookmarkDownload() {
     showToast(`${ok}/${ids.length} 件 完了`);
   } catch (e) {
     showToast("一括DL失敗: " + e.message);
+  } finally {
+    await stopBookmarkPolling(ids);
   }
 
   elBookmarkDlBtn.disabled = false;
   elBookmarkDlBtn.textContent = "選択をDL";
 }
 
+// ─── 進捗ポーリング（queued→detecting→downloading→done/failed を一括監視） ─────
+// BOOKMARK_DL_PROGRESS のブロードキャストは、ページに重ねるパネル（content script
+// 注入の iframe）には届かないことがある（届かない環境では「着手前」から一切
+// 進まなくなる）。ブロードキャストに頼らず、DL開始と同時に全件分を能動的に
+// ポーリングすることで、ブロードキャストの有無に関わらず状態を反映する。
+const bookmarkPollingIds = new Set();
+let   bookmarkPollTimer  = null;
+
+async function pollBookmarksOnce(ids) {
+  const results = await Promise.all(ids.map(async id => {
+    try { return [id, await browser.runtime.sendMessage({ type: "GET_BOOKMARK_PROGRESS", bookmarkId: id })]; }
+    catch (_) { return [id, null]; }
+  }));
+  for (const [id, p] of results) {
+    if (!p) continue;
+    updateBookmarkRow(id, p.state, p);
+    if (p.state === "done" || p.state === "failed") bookmarkPollingIds.delete(id);
+  }
+}
+
+function startBookmarkPolling(ids) {
+  ids.forEach(id => bookmarkPollingIds.add(id));
+  if (bookmarkPollTimer) return;
+  bookmarkPollTimer = setInterval(async () => {
+    await pollBookmarksOnce([...bookmarkPollingIds]);
+    if (!bookmarkPollingIds.size) { clearInterval(bookmarkPollTimer); bookmarkPollTimer = null; }
+  }, 700);
+}
+
+// DOWNLOAD_BOOKMARKS が応答を返した時点で background 側は全件すでに最終状態
+// （done/failed）になっているはずなので、タイマーを止める前に一度だけ
+// 最新状態を取りに行ってから反映する（最後のポーリングtickを待たずに
+// 「DL中」のまま表示が止まってしまうのを防ぐ）。
+async function stopBookmarkPolling(ids) {
+  await pollBookmarksOnce(ids);
+  if (!bookmarkPollingIds.size && bookmarkPollTimer) { clearInterval(bookmarkPollTimer); bookmarkPollTimer = null; }
+}
+
 // ─── 行の状態表示を更新 ───────────────────────────────────────────────────────
 // extra: { percent?, bytesReceived?, totalBytes?, reason? }（BOOKMARK_DL_PROGRESS /
 // GET_BOOKMARK_PROGRESS の中身をそのまま渡せる形）
-const bookmarkPollTimers = new Map(); // id -> setInterval のタイマーID
-
 function formatBytes(n) {
   if (!(n > 0)) return "";
   if (n < 1024 * 1024) return Math.round(n / 1024) + "KB";
@@ -155,23 +194,5 @@ function updateBookmarkRow(id, state, extra = {}) {
     const recv = formatBytes(extra.bytesReceived);
     const tot  = formatBytes(extra.totalBytes);
     size.textContent = tot ? `${recv} / ${tot}` : recv;
-  }
-
-  // BOOKMARK_DL_PROGRESS のブロードキャストは、ページに重ねるパネル（content script
-  // 注入の iframe）には届かないことがある。そのため background の
-  // bookmarkProgressState を直接ポーリングして補う（GET_HLS_PROGRESS と同じ理由）。
-  if (state === "downloading") {
-    if (!bookmarkPollTimers.has(id)) {
-      const timer = setInterval(async () => {
-        let p;
-        try { p = await browser.runtime.sendMessage({ type: "GET_BOOKMARK_PROGRESS", bookmarkId: id }); }
-        catch (_) { return; }
-        if (p) updateBookmarkRow(id, p.state, p);
-      }, 700);
-      bookmarkPollTimers.set(id, timer);
-    }
-  } else {
-    const timer = bookmarkPollTimers.get(id);
-    if (timer) { clearInterval(timer); bookmarkPollTimers.delete(id); }
   }
 }
