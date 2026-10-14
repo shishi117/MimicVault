@@ -46,6 +46,14 @@ function bookmarkFilenameStem(title) {
     || "media";
 }
 
+// ブックマークのタイトルが「未設定」「URLそのもの」など名前として使えない場合、
+// trueを返す。動画サイトはページ読み込み後にJSでtitleを書き換えることが多く、
+// ブックマーク保存時点のタイトルが空・仮のURLのままになっているケースがある。
+function hasUsableBookmarkTitle(node) {
+  const t = (node.title || "").trim();
+  return !!t && t !== node.url;
+}
+
 // ─── 「ダウンロード済み」フォルダの確保 ───────────────────────────────────────
 // 元のブックマークと同じ場所に作る（固定のブックマークメニュー直下ではない）。
 // フォルダごとにキャッシュする: 同じ親フォルダ内で複数件処理する一括DL中に
@@ -240,7 +248,10 @@ async function processOneBookmark(node) {
     if (!item) { emit("failed", { reason: "no_media" }); return { bookmarkId, ok: false, reason: "no_media" }; }
 
     emit("downloading");
-    setFilenameStemOverride(bookmarkFilenameStem(node.title));
+    // ブックマークのタイトルが使えない（空/URLそのもの）場合は、既に読み込み済みの
+    // タブから実際のページタイトルを取る（inferTitleStem 等と同じ getPageTitle を流用）。
+    const titleSource = hasUsableBookmarkTitle(node) ? node.title : await getPageTitle(tab.id);
+    setFilenameStemOverride(bookmarkFilenameStem(titleSource ?? node.title));
     let dlResult;
     try {
       dlResult = await downloadDetected(item, emit);
