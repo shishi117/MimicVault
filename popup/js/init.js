@@ -30,9 +30,14 @@ async function init() {
   });
 
   // ステップ18: 設定ボタン → options ページを開く
+  // パネル（iframe）は content script 注入の子フレームのため
+  // browser.runtime.openOptionsPage() を直接呼んでも開かない
+  // （bookmarks 同様の Firefox の制限）。background に依頼する。
   if (elSettingsBtn) {
     elSettingsBtn.addEventListener("click", () => {
-      browser.runtime.openOptionsPage().catch(err => {
+      browser.runtime.sendMessage({ type: "OPEN_OPTIONS_PAGE" }).then(res => {
+        if (!res?.ok) console.error("[popup] openOptionsPage failed:", res?.error);
+      }).catch(err => {
         console.error("[popup] openOptionsPage failed:", err);
       });
       // options ページを開いたらこのパネルは閉じて UX をスムーズに

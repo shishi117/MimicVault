@@ -286,6 +286,16 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     }
 
+    // 設定ボタン。パネル（iframe）は content script 注入の子フレームのため
+    // browser.runtime.openOptionsPage() を直接呼んでも開かない
+    // （GET_BOOKMARK_FOLDERS 等と同じ Firefox の制限）。background 側で呼ぶ。
+    case "OPEN_OPTIONS_PAGE": {
+      browser.runtime.openOptionsPage()
+        .then(()  => sendResponse({ ok: true }))
+        .catch(err => sendResponse({ ok: false, error: err.message }));
+      return true;
+    }
+
     default:
       break;
   }
