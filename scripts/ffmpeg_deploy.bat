@@ -19,7 +19,7 @@ rem --- 設定 ---
 rem DOWNLOAD_URL: gyan.dev の「essentials」ビルド。常に最新版を指す固定URL
 set "DOWNLOAD_URL=https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
 rem %~dp0 = このbatファイルが置かれているフォルダのパス（末尾に \ 付き）＝最終的な配置先
-set "DEST_DIR=%~dp0"
+set "DEST_DIR=%~dp0..\companion\"
 rem WORK_DIR: ダウンロード・展開用の作業フォルダ（%TEMP%＝クラウド同期対象外の一時フォルダ）
 set "WORK_DIR=%TEMP%\ffmpeg_setup_tmp"
 set "ZIP_FILE=%WORK_DIR%\ffmpeg-release-essentials.zip"
