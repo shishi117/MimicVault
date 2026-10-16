@@ -5,6 +5,8 @@
 :: non-ASCII here.
 :: Usage: install-policy.bat ["<Firefox>\distribution"]
 ::   Omit the arg to use the Firefox Developer Edition default distribution dir.
+:: MIMICVAULT_CHAINED (set by install-all.bat) skips the final pause, since
+:: install-all.bat's own window stays open regardless.
 setlocal
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0..\deploy\install-policy.ps1" -DistDir "%~1"
-pause
+if not defined MIMICVAULT_CHAINED pause

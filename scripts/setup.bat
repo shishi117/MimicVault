@@ -5,6 +5,9 @@
 :: Known limitation: winget / the Bun installer update PATH for new terminals only,
 :: not this already-running one. If either is installed below, this script stops
 :: and asks you to re-run it from a fresh terminal.
+:: MIMICVAULT_CHAINED (set by install-all.bat before calling this) skips every
+:: "press a key" pause below, since install-all.bat's own window stays open
+:: regardless. Run this script directly (not via install-all.bat) to keep them.
 :: Usage: double-click, or run from cmd: setup.bat
 setlocal
 cd /d "%~dp0.."
@@ -18,14 +21,14 @@ if errorlevel 1 (
   if errorlevel 1 (
     echo [ERROR] Node.js not found and winget is unavailable.
     echo         Install Node.js manually: see docs\initial setup doc section 1.2
-    pause
+    if not defined MIMICVAULT_CHAINED pause
     exit /b 1
   )
   echo [INFO] Node.js not found. Installing via winget...
   winget install -e --id OpenJS.NodeJS.LTS
   if errorlevel 1 (
     echo [ERROR] winget install failed. Install Node.js manually from https://nodejs.org/
-    pause
+    if not defined MIMICVAULT_CHAINED pause
     exit /b 1
   )
   set NEED_NEW_TERMINAL=1
@@ -41,7 +44,7 @@ if errorlevel 1 (
   powershell -NoProfile -Command "irm bun.sh/install.ps1 | iex"
   if errorlevel 1 (
     echo [ERROR] Bun install failed. Install manually from https://bun.sh/
-    pause
+    if not defined MIMICVAULT_CHAINED pause
     exit /b 1
   )
   set NEED_NEW_TERMINAL=1
@@ -53,7 +56,7 @@ if "%NEED_NEW_TERMINAL%"=="1" (
   echo.
   echo [OK] Install step done. Close this terminal, open a new one, and re-run
   echo      setup.bat so the updated PATH takes effect.
-  pause
+  if not defined MIMICVAULT_CHAINED pause
   exit /b 2
 )
 
@@ -62,10 +65,10 @@ call npm install
 if errorlevel 1 (
   echo.
   echo [ERROR] npm install failed. See the error above.
-  pause
+  if not defined MIMICVAULT_CHAINED pause
   exit /b 1
 )
 echo.
 echo [OK] npm install complete.
 call npx web-ext --version
-pause
+if not defined MIMICVAULT_CHAINED pause

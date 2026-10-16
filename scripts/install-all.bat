@@ -9,8 +9,23 @@
 :: report failure via errorlevel (see their own [ERROR] output if something
 :: looks wrong); only step 1 (setup.bat) is checked here.
 :: Usage: double-click, or run from cmd: install-all.bat ["<Firefox>\distribution"]
+
+:: Self-elevate: install-policy.bat writes under Program Files, which needs
+:: administrator rights. If not already elevated, relaunch this same script
+:: via a UAC prompt and quit this (non-elevated) instance.
+:: Known limitation: if "<Firefox>\distribution" contains spaces, the relaunch
+:: below may not forward it correctly; in that case open an elevated command
+:: prompt yourself and run install-all.bat "<path>" from there.
+net session >nul 2>&1
+if errorlevel 1 (
+  echo [INFO] Requesting administrator privileges...
+  powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -ArgumentList '%*' -Verb RunAs"
+  exit /b
+)
+
 setlocal
 set "HERE=%~dp0"
+set "MIMICVAULT_CHAINED=1"
 
 echo === [1/3] setup.bat (prerequisite tools) ===
 call "%HERE%setup.bat"
