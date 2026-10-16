@@ -73,5 +73,12 @@ echo [INFO] XPI folder not found: %APPDATA%\MimicVault
 
 echo.
 echo === Done ===
-echo Restart Firefox: MimicVault will disappear from about:addons.
+echo Restart Firefox: MimicVault should disappear from about:addons.
+echo.
+echo If it still appears after restarting, policies.json was not where this
+echo script expected, or was already missing before this run. In that case
+echo Firefox is no longer enforcing the policy install, but it can leave the
+echo extension sitting in your profile as a normal, removable add-on.
+echo Remove it by hand: open about:addons, find MimicVault, click its menu
+echo button, and choose Remove.
 pause
