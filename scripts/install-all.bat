@@ -13,13 +13,16 @@
 :: Self-elevate: install-policy.bat writes under Program Files, which needs
 :: administrator rights. If not already elevated, relaunch this same script
 :: via a UAC prompt and quit this (non-elevated) instance.
-:: Known limitation: if "<Firefox>\distribution" contains spaces, the relaunch
-:: below may not forward it correctly; in that case open an elevated command
-:: prompt yourself and run install-all.bat "<path>" from there.
+:: Start-Process -ArgumentList rejects an empty string, so the no-argument
+:: case (the common one) must omit -ArgumentList entirely rather than pass ''.
 net session >nul 2>&1
 if errorlevel 1 (
   echo [INFO] Requesting administrator privileges...
-  powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -ArgumentList '%*' -Verb RunAs"
+  if "%~1"=="" (
+    powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs"
+  ) else (
+    powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -ArgumentList '%~1' -Verb RunAs"
+  )
   exit /b
 )
 
