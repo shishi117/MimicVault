@@ -44,13 +44,13 @@ function renderList() {
     if (sortKey === "size") {
       // サイズ不明は末尾へ。buildItem の表示と同じ基準を使う:
       // ストリーム(HLS/DASH)は結合後推定サイズ(mediaMetaStore.sizeBytes)、
-      // 単体ファイル（ラベル「分割」）は contentLength。ストリームの
+      // 単体ファイル（ラベル「mp4分割」）は contentLength。ストリームの
       // contentLength はマニフェスト自体のサイズで実サイズと無関係なため
       // 流用しない（renderList 冒頭の注意コメント参照）。
       const sizeOf = (it) => {
         const meta = mediaMetaStore.get(it.url);
         if (meta?.sizeBytes != null) return meta.sizeBytes;
-        const isSingleFile = !it.isSegmentGroup && mediaMethodLabel(it) === "分割";
+        const isSingleFile = !it.isSegmentGroup && mediaMethodLabel(it) === "mp4分割";
         return isSingleFile ? (it.contentLength ?? -1) : -1;
       };
       return sizeOf(b) - sizeOf(a);
