@@ -54,7 +54,7 @@ if "%NEED_NEW_TERMINAL%"=="1" (
   echo [OK] Install step done. Close this terminal, open a new one, and re-run
   echo      setup.bat so the updated PATH takes effect.
   pause
-  exit /b 0
+  exit /b 2
 )
 
 echo.

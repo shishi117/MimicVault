@@ -9,7 +9,27 @@ $ErrorActionPreference = 'Stop'
 $scriptDir = $PSScriptRoot
 $repoRoot = Split-Path -Parent $scriptDir
 
+if ([string]::IsNullOrEmpty($DistDir)) { $DistDir = 'C:\Program Files\Firefox Developer Edition\distribution' }
+$xpiDir = Join-Path $env:APPDATA 'MimicVault'
+$xpiPath = Join-Path $xpiDir 'mimicvault.xpi'
+$dest = Join-Path $DistDir 'policies.json'
+
 Write-Host '=== MimicVault 拡張機能 policy インストーラ (Windows) ==='
+
+# 既に永続化登録済みの場合、古い policies.json / XPI を先に削除してから作り直す
+# （二重登録や古い設定の残留を防ぐ）。
+if (Test-Path $dest) {
+    $existing = Get-Content -Raw $dest -ErrorAction SilentlyContinue
+    if ($existing -match 'mimicvault@local') {
+        Remove-Item $dest -Force
+        Write-Host "[OK] 既存の永続化設定を削除: $dest"
+    }
+}
+if (Test-Path $xpiPath) {
+    Remove-Item $xpiPath -Force
+    Write-Host "[OK] 既存の XPI を削除: $xpiPath"
+}
+
 Push-Location $repoRoot
 & npm run --silent build
 Pop-Location
@@ -17,9 +37,7 @@ Pop-Location
 $zip = Get-ChildItem (Join-Path $repoRoot 'web-ext-artifacts\*.zip') -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
 if (-not $zip) { Write-Host '[ERROR] web-ext-artifacts\*.zip が見つかりません。'; exit 1 }
 
-$xpiDir = Join-Path $env:APPDATA 'MimicVault'
 New-Item -ItemType Directory -Force -Path $xpiDir | Out-Null
-$xpiPath = Join-Path $xpiDir 'mimicvault.xpi'
 Copy-Item $zip.FullName $xpiPath -Force
 Write-Host "[OK] XPI 配置: $xpiPath"
 
@@ -27,9 +45,7 @@ $fileUrlPath = '/' + ($xpiPath -replace '\\','/')
 $template = Join-Path $scriptDir 'policies.json'
 $content = (Get-Content -Raw $template) -replace '__XPI_PATH__', $fileUrlPath
 
-if ([string]::IsNullOrEmpty($DistDir)) { $DistDir = 'C:\Program Files\Firefox Developer Edition\distribution' }
 New-Item -ItemType Directory -Force -Path $DistDir | Out-Null
-$dest = Join-Path $DistDir 'policies.json'
 [System.IO.File]::WriteAllText($dest, $content, (New-Object System.Text.UTF8Encoding($false)))
 Write-Host "[OK] policies.json 配置: $dest"
 
