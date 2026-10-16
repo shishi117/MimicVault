@@ -30,10 +30,10 @@ function buildLiveRecordingBanner() {
     const dot = document.createElement("span");
     dot.className = "live-dot";
 
-    // ラベル（ファイル名ステム or URL）
+    // ラベル（ダウンロードフォルダに残る実際のファイル名 or URL）
     const label = document.createElement("span");
     label.className = "live-banner-label";
-    label.textContent = lrs.stem || extractFilename(url);
+    label.textContent = lrs.filename || lrs.stem || extractFilename(url);
     label.title = url;
 
     // 統計（セグメント数 / チャンク数）

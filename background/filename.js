@@ -46,3 +46,7 @@ function sanitizeFilename(s) {
 
 // 後方互換エイリアス（旧 applyFilenamePrefix の呼び出しは下記で置き換え済み）
 
+if (typeof module !== "undefined") {
+  module.exports = { applyFilenameTemplate, sanitizeFilename, setFilenameStemOverride };
+}
+

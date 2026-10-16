@@ -128,7 +128,7 @@ browser.runtime.onMessage.addListener((message) => {
 
   // ── ステップ10: ライブ録画進捗 ────────────────────────────────────────────
   if (message.type === "LIVE_RECORDING_PROGRESS") {
-    const { url, state, totalSegments, chunkIndex, stem } = message;
+    const { url, state, totalSegments, chunkIndex, stem, filename } = message;
 
     let lrs = liveRecordingStates.get(url);
     if (!lrs) {
@@ -139,6 +139,7 @@ browser.runtime.onMessage.addListener((message) => {
     lrs.totalSegments = totalSegments;
     lrs.chunkIndex    = chunkIndex;
     if (stem) lrs.stem = stem;
+    if (filename) lrs.filename = filename;
 
     // バナーを更新（状態変化時は全体再構築、統計更新のみなら軽量パス）
     if (state === "recording" && liveRecordingStates.has(url)) {
