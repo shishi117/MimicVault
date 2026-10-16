@@ -69,7 +69,7 @@ npm run run -- --firefox=deved   # Developer Edition を一時プロファイル
 ./deploy/install-policy.sh [<Firefox>/distribution]
 
 # Windows
-deploy\install-policy.bat ["<Firefox>\distribution"]
+scripts\install-policy.bat ["<Firefox>\distribution"]
 ```
 配置後 Firefox を再起動すると、`about:addons` に「企業ポリシーにより追加」として常駐します
 （`about:policies` で確認可能）。ポリシーの雛形は `deploy/policies.json`。

@@ -1,13 +1,13 @@
 @echo off
 :: MimicVault - installs prerequisite tools (Node.js/npm, Bun) if missing, then
 :: installs devDependencies (web-ext etc.) via npm install.
-:: ASCII only, see deploy/install-policy.bat for why.
+:: ASCII only, see install-policy.bat for why.
 :: Known limitation: winget / the Bun installer update PATH for new terminals only,
 :: not this already-running one. If either is installed below, this script stops
 :: and asks you to re-run it from a fresh terminal.
 :: Usage: double-click, or run from cmd: setup.bat
 setlocal
-cd /d "%~dp0"
+cd /d "%~dp0.."
 
 set NEED_NEW_TERMINAL=0
 

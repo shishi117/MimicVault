@@ -18,8 +18,7 @@ export default {
     'package.json',
     'package-lock.json',
     'web-ext-config.mjs',
-    'setup.bat',
-    'install-all.bat',
+    'scripts/**',
     '*.md',
   ],
 
