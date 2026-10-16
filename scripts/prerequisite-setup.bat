@@ -1,14 +1,14 @@
 @echo off
 :: MimicVault - installs prerequisite tools (Node.js/npm, Bun) if missing, then
 :: installs devDependencies (web-ext etc.) via npm install.
-:: ASCII only, see install-policy.bat for why.
+:: ASCII only, see firefox-policy-install.bat for why.
 :: Known limitation: winget / the Bun installer update PATH for new terminals only,
 :: not this already-running one. If either is installed below, this script stops
 :: and asks you to re-run it from a fresh terminal.
-:: MIMICVAULT_CHAINED (set by install-all.bat before calling this) skips every
-:: "press a key" pause below, since install-all.bat's own window stays open
-:: regardless. Run this script directly (not via install-all.bat) to keep them.
-:: Usage: double-click, or run from cmd: setup.bat
+:: MIMICVAULT_CHAINED (set by install.bat before calling this) skips every
+:: "press a key" pause below, since install.bat's own window stays open
+:: regardless. Run this script directly (not via install.bat) to keep them.
+:: Usage: double-click, or run from cmd: prerequisite-setup.bat
 setlocal
 cd /d "%~dp0.."
 
@@ -55,7 +55,7 @@ if errorlevel 1 (
 if "%NEED_NEW_TERMINAL%"=="1" (
   echo.
   echo [OK] Install step done. Close this terminal, open a new one, and re-run
-  echo      setup.bat so the updated PATH takes effect.
+  echo      prerequisite-setup.bat so the updated PATH takes effect.
   if not defined MIMICVAULT_CHAINED pause
   exit /b 2
 )

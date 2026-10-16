@@ -7,7 +7,7 @@
 :: Prerequisite: Bun installed (only on the build machine, not on the target).
 ::   https://bun.sh/  ->  powershell -c "irm bun.sh/install.ps1 | iex"
 ::
-:: Run: double-click build.bat here, or run it from cmd.
+:: Run: double-click companion-build.bat here, or run it from cmd.
 
 setlocal
 set "COMPANION_DIR=%~dp0..\companion"
@@ -32,7 +32,7 @@ echo [OK] mimic-vault.exe created in companion\.
 echo.
 echo Next steps:
 echo   1. Put ffmpeg.exe in companion\ (for a zero-dependency build; see ffmpeg_deploy.bat)
-echo   2. Run install.bat to register with Firefox
+echo   2. Run companion-install.bat to register with Firefox
 echo.
 
 REM pause
