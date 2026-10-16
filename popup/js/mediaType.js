@@ -37,6 +37,6 @@ function mediaMethodLabel(item) {
   if (isHls) return "HLS";
   // 通常の progressive 直リンク。downloadDirectRanged.js が再生時のような
   // Range 分割リクエストで取得するため、ラベルもそれに合わせる。
-  return "分割";
+  return "mp4分割";
 }
 

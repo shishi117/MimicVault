@@ -54,6 +54,11 @@ async function fetchThumb({ url, tabId, imgEl }) {
     if (res?.ok && res.dataURL) {
       imgEl.src = res.dataURL;
       imgEl.classList.add("thumb-img--loaded");
+      // allItems 内の該当アイテムにも反映する。ここで更新しておかないと、
+      // loadMediaMeta() 完了後の renderList() 再描画（buildItem() が allItems
+      // から作り直す）でサムネイルが消えてしまう。
+      const item = allItems.find(it => it.url === url);
+      if (item) item.thumbnail = res.dataURL;
       // background にキャッシュ（ポップアップを閉じても保持）
       browser.runtime.sendMessage({
         type:   "SET_THUMBNAIL",

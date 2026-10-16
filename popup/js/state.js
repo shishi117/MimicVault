@@ -16,7 +16,6 @@ const filterTabs = document.querySelectorAll(".filter-tab");
 const elCompanionIndicator = document.getElementById("companion-indicator");
 const elSettingsBtn        = document.getElementById("settings-btn");
 const elClosePanelBtn      = document.getElementById("close-panel-btn");
-const elDlAllBtn           = document.getElementById("dl-all-btn");
 // ブックマーク一括DLパネル
 const elBookmarkBtn        = document.getElementById("bookmark-btn");
 const elBookmarkPanel      = document.getElementById("bookmark-panel");
@@ -105,6 +104,7 @@ const mpdDurationStore = new Map();
  *   totalSegments: number,
  *   chunkIndex:    number,
  *   stem:          string,
+ *   filename:      string,  // ダウンロードフォルダに残る実際のファイル名（表示用）
  * }
  */
 const liveRecordingStates = new Map();

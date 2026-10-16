@@ -281,6 +281,7 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
         totalSegments: s.totalSegments,
         chunkIndex:    s.chunkIndex,
         stem:          s.stem,
+        filename:      liveSessionFilename(s),
       }));
       sendResponse({ sessions });
       return true;
