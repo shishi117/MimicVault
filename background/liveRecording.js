@@ -61,14 +61,10 @@ async function startLiveRecording(url, pageURL, initialParsed, tabId) {
     }
   }
 
-  // ── ファイル名ステムを URL から推定 ────────────────────────────────────────
-  let stem = "stream";
-  try {
-    const pathname = new URL(url).pathname;
-    const raw = pathname.split("/").filter(Boolean).pop() ?? "";
-    const s = raw.replace(/\.[^.]+$/, "") || "stream";
-    stem = s.replace(/[/\\:*?"<>|]/g, "_");
-  } catch (_) {}
+  // ── ファイル名ステムを推定（動画タイトル + URLステム） ─────────────────────
+  // 他経路（通常DL/HLS-VOD/DASH等）と同じ inferTitleStem を使う。
+  // 禁則文字の置換は applyFilenameTemplate 側の sanitizeFilename に委ねる。
+  const stem = await inferTitleStem(url, tabId);
 
   // ── セッション初期化 ────────────────────────────────────────────────────────
   const session = {
