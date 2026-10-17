@@ -68,11 +68,13 @@ npm run run -- --firefox=deved   # Developer Edition を一時プロファイル
 # macOS / Linux
 ./deploy/install-policy.sh [<Firefox>/distribution]
 
-# Windows
+# Windows（拡張機能のみ。前提ツール導入や companion アプリも含めて一括で行う場合は
+# scripts\install.bat を使用。詳細な手順は docs/初期設定手順.md 参照）
 scripts\firefox-policy-install.bat ["<Firefox>\distribution"]
 ```
 配置後 Firefox を再起動すると、`about:addons` に「企業ポリシーにより追加」として常駐します
 （`about:policies` で確認可能）。ポリシーの雛形は `deploy/policies.json`。
+アンインストールする場合は `scripts\uninstall.bat` を実行してください（companion のホスト登録も含めて削除）。
 
 ## プライベートモード
 `webRequest` でメディアを検出する都合上、プライベートウィンドウでは拡張の許可が必要です。
