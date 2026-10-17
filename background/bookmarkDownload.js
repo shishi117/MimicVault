@@ -7,8 +7,9 @@
 // ブックマークを「ダウンロード済み」フォルダへ退避する。
 //
 // 既知の簡略化: 逐次処理（同時1タブ / 1 FFmpeg）。既存の全DL（DOWNLOAD_MEDIA_ALL）が
-//   「通常ストリームは1本」と割り切っているのと同方針。並列化するなら
-//   filenameStemOverride を明示引数化する必要がある（filename.js のコメント参照）。
+//   「通常ストリームは1本」と割り切っているのと同方針。
+//   （ファイル名ステムは各DL関数への明示引数 stemOverride 渡しなので、並行DLとの
+//    混線はしない。並列化を妨げているのはタブ/FFmpegの同時実行数の方。）
 
 "use strict";
 
@@ -171,7 +172,9 @@ function pollRowProgress(getProgress, emit) {
 }
 
 // ─── 検出メディアを既存DL経路へ委譲 ───────────────────────────────────────────
-async function downloadDetected(item, emit) {
+// stemOverride: ブックマークタイトル由来のステム。各DL経路の関数へ明示的に渡し、
+// タブタイトル推定の代わりに使わせる（グローバル上書きではないので並行DLでも安全）。
+async function downloadDetected(item, emit, stemOverride) {
   const url      = item.url;
   const pageURL  = item.pageURL || "";
   const mimeHint = item.mimeHint || "";
@@ -191,7 +194,7 @@ async function downloadDetected(item, emit) {
         return { percent: Math.round((p.current / p.total) * 100) };
       }, emit);
       try {
-        return await gateDownloadResult(await downloadHlsSegments(url, pageURL, null));
+        return await gateDownloadResult(await downloadHlsSegments(url, pageURL, null, stemOverride));
       } finally {
         stopPoll();
       }
@@ -200,11 +203,11 @@ async function downloadDetected(item, emit) {
     // DASH: 既知の簡略化 — downloadDashAndMux.js 側に進捗通知口が無いため
     // パーセント表示はできず「DL中」のみになる。追加するなら hlsProgressState と
     // 同じ要領で dashSegments.js のセグメント取得ループに進捗コールバックを足す。
-    return await gateDownloadResult(await autoDashMux({ url, pageURL }));
+    return await gateDownloadResult(await autoDashMux({ url, pageURL }, null, stemOverride));
   }
 
   // 直接ファイル: browser.downloads.search でバイト単位の進捗を取れる
-  const filename = applyFilenameTemplate(inferStem(url), inferExt(url, mimeHint));
+  const filename = applyFilenameTemplate(stemOverride ?? inferStem(url), inferExt(url, mimeHint));
   if (pageURL) pendingReferers.set(url, pageURL);
   let downloadId;
   try {
@@ -251,13 +254,8 @@ async function processOneBookmark(node) {
     // ブックマークのタイトルが使えない（空/URLそのもの）場合は、既に読み込み済みの
     // タブから実際のページタイトルを取る（inferTitleStem 等と同じ getPageTitle を流用）。
     const titleSource = hasUsableBookmarkTitle(node) ? node.title : await getPageTitle(tab.id);
-    setFilenameStemOverride(bookmarkFilenameStem(titleSource ?? node.title));
-    let dlResult;
-    try {
-      dlResult = await downloadDetected(item, emit);
-    } finally {
-      setFilenameStemOverride(null);
-    }
+    const stemOverride = bookmarkFilenameStem(titleSource ?? node.title);
+    const dlResult = await downloadDetected(item, emit, stemOverride);
     if (!dlResult.ok) { emit("failed", { reason: dlResult.error }); return { bookmarkId, ok: false, error: dlResult.error }; }
 
     // 成功したものだけ退避（移動自体の失敗はDL済みなので致命的でない）

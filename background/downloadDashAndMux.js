@@ -22,17 +22,20 @@
  *     tabId:       number,          // ファイル名に動画タイトルを使うため
  *   }
  *
+ * stemOverride: 指定時はタブタイトル推定の代わりにこちらを使う
+ * （ブックマーク一括DL: background/bookmarkDownload.js が使用）
+ *
  * 返り値:
  *   { ok: true,  muxed: true,  filePath }   — mux 成功
  *   { ok: true,  muxed: false }             — フォールバック（別ファイルDL）
  *   { ok: false, error }                    — 失敗
  */
-async function downloadDashAndMux({ videoRep, audioRep, mpdUrl, mpdDuration, pageURL, tabId }) {
+async function downloadDashAndMux({ videoRep, audioRep, mpdUrl, mpdDuration, pageURL, tabId, stemOverride }) {
   // companion 未接続 → 別ファイルフォールバック
   if (!companionPort) {
     browser.runtime.sendMessage({ type: "DASH_MUX_FALLBACK" }).catch(() => {});
-    const vRes = await downloadDashTrack({ rep: videoRep, mpdUrl, mpdDuration, trackType: "video", pageURL, tabId });
-    const aRes = await downloadDashTrack({ rep: audioRep, mpdUrl, mpdDuration, trackType: "audio", pageURL, tabId });
+    const vRes = await downloadDashTrack({ rep: videoRep, mpdUrl, mpdDuration, trackType: "video", pageURL, tabId, stemOverride });
+    const aRes = await downloadDashTrack({ rep: audioRep, mpdUrl, mpdDuration, trackType: "audio", pageURL, tabId, stemOverride });
     return { ok: true, muxed: false, videoResult: vRes, audioResult: aRes };
   }
 
@@ -117,7 +120,7 @@ async function downloadDashAndMux({ videoRep, audioRep, mpdUrl, mpdDuration, pag
     blobToBase64(audioBlob),
   ]);
 
-  const stem       = await inferTitleStem(mpdUrl, tabId);
+  const stem       = stemOverride ?? await inferTitleStem(mpdUrl, tabId);
   const outputName = applyFilenameTemplate(stem, "mp4");
 
   let result;

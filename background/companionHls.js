@@ -20,12 +20,14 @@
  * @param {string} mediaPlaylistUrl - HLS Media Playlist URL
  * @param {string} pageURL          - Referer 用の元ページ URL
  * @param {number} [tabId]          - ファイル名にタブタイトルを使うための元タブ ID
+ * @param {string} [stemOverride]   - 指定時はタブタイトル推定の代わりにこちらを使う
+ *                                    （ブックマーク一括DL: background/bookmarkDownload.js が使用）
  * @returns {Promise<{ ok: true, downloadId: null, filePath: string } | { ok: false, error: string }>}
  */
-async function downloadHlsViaCompanion(mediaPlaylistUrl, pageURL, tabId) {
+async function downloadHlsViaCompanion(mediaPlaylistUrl, pageURL, tabId, stemOverride) {
   // ファイル名（.mp4 拡張子）を決める。URL は多くの配信元で "video.m3u8" 等の
   // 定型名なので、タブの表示タイトルが取れればそちらを優先する。
-  const stem = await inferTitleStem(mediaPlaylistUrl, tabId);
+  const stem = stemOverride ?? await inferTitleStem(mediaPlaylistUrl, tabId);
   const outputName = applyFilenameTemplate(stem, "mp4");
 
   // companion に変換を依頼し、進捗を popup に中継する

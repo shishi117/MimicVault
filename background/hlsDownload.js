@@ -3,9 +3,11 @@
 
 "use strict";
 
-async function downloadHlsSegments(mediaPlaylistUrl, pageURL, tabId) {
+// stemOverride: 指定時はタブタイトル推定の代わりにこちらを使う
+// （ブックマーク一括DL: background/bookmarkDownload.js が使用）
+async function downloadHlsSegments(mediaPlaylistUrl, pageURL, tabId, stemOverride) {
   try {
-    return await downloadHlsSegmentsInner(mediaPlaylistUrl, pageURL, tabId);
+    return await downloadHlsSegmentsInner(mediaPlaylistUrl, pageURL, tabId, stemOverride);
   } finally {
     // 進捗問い合わせキャッシュ（hlsProgressState）は成功・失敗問わず後片付けする。
     // 残したままだと、同じ URL を後で再ダウンロードした時に古い進捗が一瞬見える。
@@ -13,14 +15,14 @@ async function downloadHlsSegments(mediaPlaylistUrl, pageURL, tabId) {
   }
 }
 
-async function downloadHlsSegmentsInner(mediaPlaylistUrl, pageURL, tabId) {
+async function downloadHlsSegmentsInner(mediaPlaylistUrl, pageURL, tabId, stemOverride) {
   // ── companion 接続時は master/media 問わず FFmpeg に丸投げ ──────────────────
   // FFmpeg はプレイリスト URL を直接受け取り、master なら画質を自動選択し、
   // セグメント取得・復号・結合・MP4 変換までを一括で行う。よって以降の
   // fetch / master 判定 / パースは不要。失敗時のみ下の非 companion フローへ落ちる。
   if (companionPort) {
     try {
-      return await downloadHlsViaCompanion(mediaPlaylistUrl, pageURL, tabId);
+      return await downloadHlsViaCompanion(mediaPlaylistUrl, pageURL, tabId, stemOverride);
     } catch (err) {
       console.warn("[Companion] HLS 変換失敗、フォールバックへ:", err.message);
     }
@@ -172,7 +174,7 @@ async function downloadHlsSegmentsInner(mediaPlaylistUrl, pageURL, tabId) {
 
   // URL は多くの配信元で "video.m3u8" 等の定型名なので、タブの表示タイトルが
   // 取れればそちらを優先する（以降の MP4/TS どちらの保存でも共通で使う）。
-  const hlsStem = await inferTitleStem(mediaPlaylistUrl, tabId);
+  const hlsStem = stemOverride ?? await inferTitleStem(mediaPlaylistUrl, tabId);
 
   // ── 4.5 まずそのまま保存する（確実に動作する経路） ───────────────────────────
   // fMP4（EXT-X-MAP あり）は init+moof+mdat のまま多くのプレイヤーで再生可能な
