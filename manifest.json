@@ -61,7 +61,6 @@
   "background": {
     "scripts": [
       "background/constants.js",
-      "background/mediaTypeDetect.js",
       "background/ismToDashUrl.js",
       "background/mp4BoxWriter.js",
       "background/mssInitSegment.js",
@@ -92,7 +91,6 @@
       "background/downloadSegmentGroup.js",
       "background/mediaMeta.js",
       "background/bookmarkDownload.js",
-      "background/downloaders.js",
       "background/messageRouter.js",
       "background/tabs.js"
     ],

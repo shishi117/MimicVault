@@ -22,8 +22,8 @@
  * @param {string} pageURL   - Referer 用の元ページ URL
  */
 async function getMediaMeta(url, mimeHint, pageURL) {
-  const isHls  = isHlsUrl(url, mimeHint);
-  const isDash = isDashUrl(url, mimeHint);
+  const isHls  = /\.m3u8(\?|#|$)/i.test(url) || (mimeHint || "").includes("mpegurl");
+  const isDash = /\.mpd(\?|#|$)/i.test(url)  || (mimeHint || "").includes("dash+xml");
 
   const estSize = (bw, dur) => (bw > 0 && dur > 0 ? Math.round(bw * dur / 8) : null);
 
