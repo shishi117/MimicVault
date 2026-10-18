@@ -17,6 +17,7 @@ global.browser = {
   },
 };
 global.isMssUrl = require("./ismToDashUrl").isMssUrl;
+global.isHlsOrDashUrl = require("./mediaTypeDetect").isHlsOrDashUrl;
 // background/constants.js の該当定数（拡張機能内では同一グローバルスコープ経由で
 // 共有される。Node テストでは require できないため最小限だけ複製する）
 global.MEDIA_MIME_RE = /^(video|audio)\//i;

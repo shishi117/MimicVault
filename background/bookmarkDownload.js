@@ -93,9 +93,7 @@ function pickLargest(candidates) {
 //   ストリーミングを最優先する。誤選択の可能性は許容（1件のみ処理）。
 function pickMediaItem(items) {
   if (!items.length) return null;
-  const streaming = items.filter(it =>
-    /\.m3u8(\?|#|$)/i.test(it.url) || /\.mpd(\?|#|$)/i.test(it.url) ||
-    (it.mimeHint || "").includes("mpegurl") || (it.mimeHint || "").includes("dash+xml"));
+  const streaming = items.filter(it => isHlsOrDashUrl(it.url, it.mimeHint));
   if (streaming.length) return pickLargest(streaming);
   const videos = items.filter(it => it.tag === "video" || /^video\//.test(it.mimeHint || ""));
   if (videos.length) return pickLargest(videos);
@@ -178,8 +176,8 @@ async function downloadDetected(item, emit, stemOverride) {
   const url      = item.url;
   const pageURL  = item.pageURL || "";
   const mimeHint = item.mimeHint || "";
-  const isHls  = /\.m3u8(\?|#|$)/i.test(url) || mimeHint.includes("mpegurl");
-  const isDash = /\.mpd(\?|#|$)/i.test(url)  || mimeHint.includes("dash+xml");
+  const isHls  = isHlsUrl(url, mimeHint);
+  const isDash = isDashUrl(url, mimeHint);
 
   if (isHls || isDash) {
     // ストリーミングは companion（FFmpeg）必須。未接続なら退避しない（全DLと同方針）。

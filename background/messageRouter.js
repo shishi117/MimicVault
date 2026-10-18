@@ -167,61 +167,46 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const store = getStore(allTabId);
       const items = [...store.values()];
 
-      // 分類（URL / mimeHint ベース。popup 側と同じ判定基準）
-      const isHls  = it => /\.m3u8(\?|#|$)/i.test(it.url) || (it.mimeHint || "").includes("mpegurl");
-      const isDash = it => /\.mpd(\?|#|$)/i.test(it.url)  || (it.mimeHint || "").includes("dash+xml");
-      const isTs   = it => /\.ts(\?|#|$)/i.test(it.url)   || (it.mimeHint || "").includes("mp2t");
-      const hasHls = items.some(isHls);
+      // 分類（URL / mimeHint ベース。background/mediaTypeDetect.js に集約。popup 側と同じ判定基準）
+      const hasHls = items.some(it => isHlsUrl(it.url, it.mimeHint));
 
       const results    = [];  // DL結果（互換のためのレスポンス形）
       const skipped    = [];  // スキップ通知用 { url, reason }
       let   converting = 0;   // companion 変換に回した件数
 
-      const promises = [];
       for (const item of items) {
-        if (isHls(item)) {
-          // HLS: companion 接続時のみ変換に回す（未接続はスキップ＋通知）
-          if (companionPort) {
-            // 長時間かかるため await しない。companion が Downloads に直接書き出す。
-            // 進捗/失敗は HLS_DOWNLOAD_PROGRESS 経路で表面化する。
-            // 既知の簡略化: 複数 HLS があると FFmpeg が同時起動する（通常1本なので許容）。
-            downloadHlsViaCompanion(item.url, item.pageURL || "", allTabId)
-              .catch(err => console.warn("[全DL] HLS 変換失敗:", item.url, err.message));
-            converting++;
-          } else {
+        // 方式判定 → DOWNLOADERS（background/downloaders.js）のハンドラへ委譲。
+        // 既知の簡略化: 同方式が複数あると FFmpeg が同時起動する（通常1本なので許容）。
+        const type = item.isSegmentGroup       ? "segment"
+          : isHlsUrl(item.url, item.mimeHint)  ? "hls"
+          : isDashUrl(item.url, item.mimeHint) ? "dash"
+          : null;
+
+        if (type) {
+          // hls/dash は companion（FFmpeg）必須。segment は companion 有無に関わらず動作。
+          if (type !== "segment" && !companionPort) {
             skipped.push({ url: item.url, reason: "companion未接続" });
+            continue;
           }
-        } else if (isDash(item)) {
-          // 全DL: companion 接続時のみ MPD 解析→既定トラック自動選択→mux
-          // （未接続では mux 不可のためスキップ。HLS と同じ挙動）
-          // 既知の簡略化: 複数 DASH があると FFmpeg が同時起動する（通常1本なので許容）。
-          if (companionPort) {
-            autoDashMux(item, allTabId)
-              .catch(err => console.warn("[全DL] DASH mux失敗:", item.url, err.message));
-            converting++;
-          } else {
-            skipped.push({ url: item.url, reason: "companion未接続" });
-          }
-        } else if (item.isSegmentGroup) {
-          // 収集ストリーム: 断片を結合して保存（companion 有無に関わらず動作）。
-          // 長時間かかるため await しない。
-          downloadSegmentGroup({ groupKey: item.groupKey, tabId: allTabId })
-            .catch(err => console.warn("[全DL] 収集ストリーム失敗:", item.url, err.message));
+          // 長時間かかるため await しない。進捗/失敗は既存の通知経路で表面化する。
+          DOWNLOADERS[type](item, allTabId)
+            .catch(err => console.warn(`[全DL] ${type}変換失敗:`, item.url, err.message));
           converting++;
-        } else if (isTs(item) && hasHls) {
+          continue;
+        }
+
+        if (isTsUrl(item.url, item.mimeHint) && hasHls) {
           // m3u8 がある = この .ts はそのストリームのセグメント。HLS 変換でまとめて
           // 取得されるので個別DLしない（一覧でも隠している）。
           continue;
-        } else {
-          // 通常の progressive 直リンク（mp4等）: Range 分割DLは1本ずつ時間が
-          // かかるため全DLには含めない。個別の「↓DL」ボタンから行う。
-          skipped.push({ url: item.url, reason: "個別のDLボタンをご利用ください" });
         }
+
+        // 通常の progressive 直リンク（mp4等）: Range 分割DLは1本ずつ時間が
+        // かかるため全DLには含めない。個別の「↓DL」ボタンから行う。
+        skipped.push({ url: item.url, reason: "個別のDLボタンをご利用ください" });
       }
 
-      Promise.all(promises)
-        .then(() => sendResponse({ ok: true, results, skipped, converting }))
-        .catch(() => sendResponse({ ok: true, results, skipped, converting }));
+      sendResponse({ ok: true, results, skipped, converting });
       return true;
     }
 

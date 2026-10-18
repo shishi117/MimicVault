@@ -13,9 +13,7 @@ function getStore(tabId) {
 }
 
 function isHlsOrDashItem(item) {
-  const mime = item.mimeHint ?? "";
-  return /\.m3u8(\?|#|$)/i.test(item.url) || mime.includes("mpegurl") ||
-         /\.mpd(\?|#|$)/i.test(item.url)  || mime.includes("dash+xml") || mime.includes("mpd");
+  return isHlsOrDashUrl(item.url, item.mimeHint);
 }
 
 /**
