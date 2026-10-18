@@ -48,6 +48,28 @@ async function processNewSegments(session, parsed) {
 }
 
 /**
+ * ライブ録画チャンクの実際の保存ファイル名を生成する（flushChunk が downloads.download
+ * に渡す名前と同じロジック）。パネル側の表示（sendLiveProgress/GET_LIVE_SESSIONS）も
+ * これを呼んで、表示と実際にダウンロードフォルダへ残るファイル名を一致させる。
+ */
+function liveChunkFilename(stem, chunkIndex) {
+  const chunkNum = String(chunkIndex).padStart(3, "0");
+  return applyFilenameTemplate(`${stem}_chunk${chunkNum}`, "ts");
+}
+
+/**
+ * セッションの現在状態から、パネルに表示すべきファイル名を返す。
+ * 録画中は次にフラッシュされる（まだ存在しない）チャンク、停止/終了後は
+ * 直前にフラッシュされた最後のチャンクのファイル名を使う。
+ */
+function liveSessionFilename(session) {
+  const chunkIndex = session.state === "recording"
+    ? session.chunkIndex + 1
+    : Math.max(session.chunkIndex, 1);
+  return liveChunkFilename(session.stem, chunkIndex);
+}
+
+/**
  * バッファ内のセグメントを結合して Blob にし、チャンクファイルとしてダウンロードする。
  * バッファは空にして次のチャンクの蓄積を開始する。
  *
@@ -74,8 +96,7 @@ async function flushChunk(session) {
   const blob    = new Blob([combined], { type: "video/mp2t" });
   const blobUrl = URL.createObjectURL(blob);
 
-  const chunkNum = String(session.chunkIndex).padStart(3, "0");
-  const filename = applyFilenameTemplate(`${session.stem}_chunk${chunkNum}`, "ts");
+  const filename = liveChunkFilename(session.stem, session.chunkIndex);
 
   try {
     const dlId = await browser.downloads.download({ url: blobUrl, filename });
@@ -140,6 +161,11 @@ function sendLiveProgress(session) {
     totalSegments: session.totalSegments,
     chunkIndex:    session.chunkIndex,
     stem:          session.stem,
+    filename:      liveSessionFilename(session),
   }).catch(() => {}); // ポップアップが閉じている場合は無視
+}
+
+if (typeof module !== "undefined") {
+  module.exports = { liveChunkFilename, liveSessionFilename };
 }
 

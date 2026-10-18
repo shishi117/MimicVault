@@ -3,7 +3,9 @@
 
 "use strict";
 
-async function downloadDashTrack({ rep, mpdUrl, mpdDuration, trackType, pageURL, tabId }) {
+// stemOverride: 指定時はタブタイトル推定の代わりにこちらを使う
+// （ブックマーク一括DL: background/bookmarkDownload.js が使用）
+async function downloadDashTrack({ rep, mpdUrl, mpdDuration, trackType, pageURL, tabId, stemOverride }) {
   const { id, bandwidth, segInfo } = rep;
 
   // ── セグメント URL を展開 ──────────────────────────────────────────────
@@ -91,7 +93,7 @@ async function downloadDashTrack({ rep, mpdUrl, mpdDuration, trackType, pageURL,
   // ファイル名: <動画タイトルらしきもの + mpdステム>_<trackType>_<repId>.<ext>
   // 例: "動画タイトル 1080p_video_1.mp4" / "動画タイトル 1080p_audio_10.m4a"
   const ext  = trackType === "audio" ? "m4a" : "mp4";
-  const stem = await inferTitleStem(mpdUrl, tabId);
+  const stem = stemOverride ?? await inferTitleStem(mpdUrl, tabId);
   const filename = applyFilenameTemplate(`${stem}_${trackType}_${id}`, ext);
 
   let downloadId;

@@ -1,5 +1,5 @@
 // popup/js/init.js — MimicVault
-// 初期化 init/startDownloadAll と起動呼び出し（最後に読み込む）
+// 初期化 init と起動呼び出し（最後に読み込む）
 
 "use strict";
 
@@ -30,9 +30,14 @@ async function init() {
   });
 
   // ステップ18: 設定ボタン → options ページを開く
+  // パネル（iframe）は content script 注入の子フレームのため
+  // browser.runtime.openOptionsPage() を直接呼んでも開かない
+  // （bookmarks 同様の Firefox の制限）。background に依頼する。
   if (elSettingsBtn) {
     elSettingsBtn.addEventListener("click", () => {
-      browser.runtime.openOptionsPage().catch(err => {
+      browser.runtime.sendMessage({ type: "OPEN_OPTIONS_PAGE" }).then(res => {
+        if (!res?.ok) console.error("[popup] openOptionsPage failed:", res?.error);
+      }).catch(err => {
         console.error("[popup] openOptionsPage failed:", err);
       });
       // options ページを開いたらこのパネルは閉じて UX をスムーズに
@@ -45,11 +50,6 @@ async function init() {
     elClosePanelBtn.addEventListener("click", () => {
       browser.runtime.sendMessage({ type: "CLOSE_PANEL" }).catch(() => {});
     });
-  }
-
-  // v0.18.0: 全件DLボタン
-  if (elDlAllBtn) {
-    elDlAllBtn.addEventListener("click", () => startDownloadAll());
   }
 
   // ブックマーク一括DLパネルの開閉
@@ -103,6 +103,7 @@ async function loadActiveTab() {
         totalSegments: s.totalSegments,
         chunkIndex:    s.chunkIndex,
         stem:          s.stem,
+        filename:      s.filename,
       });
     }
   } catch (_) {}
@@ -116,11 +117,11 @@ async function loadActiveTab() {
 /**
  * 検出済みの DASH/HLS アイテムのメタ情報（方式・長さ・結合後サイズ）を
  * background に並列で問い合わせ、mediaMetaStore に格納してリストを再描画する。
- * 直接ファイル（mp4 等、ラベル「分割」）は長さ不明のため対象外。
+ * 直接ファイル（mp4 等、ラベル「mp4分割」）は長さ不明のため対象外。
  * 既知の簡略化: 全件 settle 後に一括再描画（通常ページ内のストリームは1本程度）。
  */
 async function loadMediaMeta() {
-  const streams = allItems.filter(it => !it.isSegmentGroup && mediaMethodLabel(it) !== "分割");
+  const streams = allItems.filter(it => !it.isSegmentGroup && mediaMethodLabel(it) !== "mp4分割");
   if (streams.length === 0) return;
 
   await Promise.allSettled(streams.map(async (item) => {
@@ -134,45 +135,6 @@ async function loadMediaMeta() {
   }));
 
   renderList();
-}
-
-/**
- * 検出された全アイテムを DOWNLOAD_MEDIA_ALL で background に一括送信する。
- * HLS / DASH アイテムは直接 DL（URL そのもの）になるため、
- * ストリーム系の結合は別途必要になることをトーストで通知する。
- */
-async function startDownloadAll() {
-  if (allItems.length === 0) return;
-
-  elDlAllBtn.disabled = true;
-  elDlAllBtn.textContent = "…";
-
-  try {
-    const res = await browser.runtime.sendMessage({
-      type:  "DOWNLOAD_MEDIA_ALL",
-      tabId: currentTabId,
-    });
-    const dl         = res?.results ?? [];
-    const failed     = dl.filter(r => !r.ok).length;
-    const ok         = dl.length - failed;
-    const converting = res?.converting ?? 0;
-    const skipped    = res?.skipped ?? [];
-
-    const parts = [];
-    if (ok > 0)         parts.push(`${ok}件DL開始`);
-    if (converting > 0) parts.push(`${converting}件を変換開始`);
-    if (failed > 0)     parts.push(`${failed}件失敗`);
-    if (skipped.length) {
-      const reasons = [...new Set(skipped.map(s => s.reason))];
-      parts.push(`${skipped.length}件スキップ(${reasons.join("・")})`);
-    }
-    showToast(parts.length ? parts.join(" / ") : "対象がありません");
-  } catch (err) {
-    showToast("全件DL失敗: " + err.message);
-  }
-
-  elDlAllBtn.disabled = false;
-  elDlAllBtn.textContent = "▶ 全DL";
 }
 
 // ─── 起動 ────────────────────────────────────────────────────────────────────
