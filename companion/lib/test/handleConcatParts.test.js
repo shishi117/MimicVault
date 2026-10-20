@@ -1,12 +1,12 @@
-// companion/lib/handleConcatParts.test.js — MimicVault
-// concatFiles の自己チェック。実行: node companion/lib/handleConcatParts.test.js
+// companion/lib/test/handleConcatParts.test.js — MimicVault
+// concatFiles の自己チェック。実行: node companion/lib/test/handleConcatParts.test.js
 "use strict";
 
 const assert = require("assert");
 const fs     = require("fs");
 const path   = require("path");
 const os     = require("os");
-const { concatFiles } = require("./handleConcatParts");
+const { concatFiles } = require("../handleConcatParts");
 
 (async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mv-concat-test-"));
