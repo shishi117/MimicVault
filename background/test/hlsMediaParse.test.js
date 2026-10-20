@@ -1,10 +1,10 @@
-// background/hlsMediaParse.test.js — MimicVault
-// EXT-X-MAP(fMP4初期化セグメント)解析の自己チェック。実行: node background/hlsMediaParse.test.js
+// background/test/hlsMediaParse.test.js — MimicVault
+// EXT-X-MAP(fMP4初期化セグメント)解析の自己チェック。実行: node background/test/hlsMediaParse.test.js
 
 "use strict";
 
 const assert = require("assert");
-const { parseMediaPlaylist } = require("./hlsMediaParse");
+const { parseMediaPlaylist } = require("../hlsMediaParse");
 
 const BASE = "https://cdn.example/video/";
 
