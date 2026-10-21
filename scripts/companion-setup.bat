@@ -15,6 +15,6 @@ call "%~dp0ffmpeg_deploy.bat"
 call "%~dp0companion-build.bat"
 call "%~dp0companion-install.bat" "%COMPANION_DIR%"
 
-START "" "C:\Program Files\Firefox Developer Edition\firefox.exe"
+REM START "" "C:\Program Files\Firefox Developer Edition\firefox.exe"
 
 if not defined MIMICVAULT_CHAINED pause
