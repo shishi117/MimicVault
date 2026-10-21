@@ -80,3 +80,15 @@ scripts\firefox-policy-install.bat ["<Firefox>\distribution"]
 `webRequest` でメディアを検出する都合上、プライベートウィンドウでは拡張の許可が必要です。
 上記 policy で `extensions.allowPrivateBrowsingByDefault=true` を配布して全体許可しています。
 手動で切り替える場合は `about:addons` → MimicVault →「プライベートウィンドウでの実行を許可する」。
+
+## 利用に関する注意事項
+本リポジトリのソースコードおよび関連ドキュメントは、著作権者の明示的な許諾なく、
+以下の行為を行うことを禁止します。
+
+- 無断利用・無断複製
+- 生成AI（LLM等）の学習データ・入力データとしての投入
+- 商用利用
+- 再配布
+- 改変（フォーク・派生物の作成を含む）
+
+詳細な利用許諾条件は [LICENSE](./LICENSE) を参照してください。

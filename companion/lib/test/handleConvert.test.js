@@ -1,10 +1,10 @@
-// companion/lib/handleConvert.test.js — MimicVault
-// buildFfmpegHeaders の自己チェック。実行: node companion/lib/handleConvert.test.js
+// companion/lib/test/handleConvert.test.js — MimicVault
+// buildFfmpegHeaders の自己チェック。実行: node companion/lib/test/handleConvert.test.js
 
 "use strict";
 
 const assert = require("assert");
-const { buildFfmpegHeaders } = require("./handleConvert");
+const { buildFfmpegHeaders } = require("../handleConvert");
 
 assert.strictEqual(
   buildFfmpegHeaders("https://example.com/video/1"),

@@ -1,10 +1,10 @@
-// background/downloadDirectRanged.test.js — MimicVault
-// buildChunkRanges の自己チェック。実行: node background/downloadDirectRanged.test.js
+// background/test/downloadDirectRanged.test.js — MimicVault
+// buildChunkRanges の自己チェック。実行: node background/test/downloadDirectRanged.test.js
 
 "use strict";
 
 const assert = require("assert");
-const { buildChunkRanges } = require("./downloadDirectRanged");
+const { buildChunkRanges } = require("../downloadDirectRanged");
 
 const MAX = 10 * 1024 * 1024; // RANGE_CHUNK_MAX_BYTES と同じ値
 

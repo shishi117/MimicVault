@@ -1,6 +1,6 @@
-// background/mediaStore.test.js — MimicVault
+// background/test/mediaStore.test.js — MimicVault
 // addToStore の検出フィルタ（HLS/DASH/収集ストリーム/直接ファイル）の自己チェック。
-// 実行: node background/mediaStore.test.js
+// 実行: node background/test/mediaStore.test.js
 
 "use strict";
 
@@ -16,13 +16,13 @@ global.browser = {
     sendMessage: () => Promise.resolve(),
   },
 };
-global.isMssUrl = require("./ismToDashUrl").isMssUrl;
-global.isHlsOrDashUrl = require("./mediaTypeDetect").isHlsOrDashUrl;
+global.isMssUrl = require("../ismToDashUrl").isMssUrl;
+global.isHlsOrDashUrl = require("../mediaTypeDetect").isHlsOrDashUrl;
 // background/constants.js の該当定数（拡張機能内では同一グローバルスコープ経由で
 // 共有される。Node テストでは require できないため最小限だけ複製する）
 global.MEDIA_MIME_RE = /^(video|audio)\//i;
 global.MEDIA_URL_RE  = /\.(mp4|webm|mkv|mov|m4v|ogg|ogv|ts|m2ts|m3u8|mpd|m4s|m4a|mp3|aac|flac|opus|wav)(\?|#|$)/i;
-const { addToStore, getStore } = require("./mediaStore");
+const { addToStore, getStore } = require("../mediaStore");
 
 const TAB = 1;
 

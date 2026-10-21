@@ -1,12 +1,12 @@
-// background/mssInitSegment.test.js — MimicVault
-// buildMssInitSegment の自己チェック。実行: node background/mssInitSegment.test.js
+// background/test/mssInitSegment.test.js — MimicVault
+// buildMssInitSegment の自己チェック。実行: node background/test/mssInitSegment.test.js
 
 "use strict";
 
 const assert = require("assert");
 const {
   buildMssInitSegment, parseAvcCodecPrivateData, hexToBytes,
-} = require("./mssInitSegment");
+} = require("../mssInitSegment");
 
 // Annex-B: 00000001 + SPS(NAL type7) + 00000001 + PPS(NAL type8)
 // SPS/PPS の内容自体は本テストの検証範囲外(ボックス構造の健全性を確認する)。
