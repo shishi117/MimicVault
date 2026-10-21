@@ -90,3 +90,5 @@ scripts\firefox-policy-install.bat ["<Firefox>\distribution"]
 - 商用利用
 - 再配布
 - 改変（フォーク・派生物の作成を含む）
+
+詳細な利用許諾条件は [LICENSE](./LICENSE) を参照してください。
