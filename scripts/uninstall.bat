@@ -5,6 +5,10 @@
 :: it only removes the registry key / files those scripts placed outside it:
 ::   1. Companion app Native Messaging host (registry key + manifest under %APPDATA%)
 ::   2. Firefox enterprise policy (policies.json) + the XPI copy under %APPDATA%\MimicVault
+:: Also force-removes the extension itself from the Firefox profile (not just the
+:: policy lock): deploy\force-uninstall-extension.ps1 briefly launches Firefox
+:: headless with a temporary Extensions.Uninstall policy so it actually leaves
+:: about:addons instead of lingering as a normal, removable add-on.
 :: ASCII only, see firefox-policy-install.bat for why.
 :: No parentheses inside any echo text below: a literal ( or ) in a message, even
 :: balanced, can be misread as block syntax by cmd when it sits inside an if/else
@@ -59,6 +63,7 @@ echo [INFO] Manifest folder not found: %APPDATA%\mimic_vault
 
 echo.
 echo === [2/2] Firefox extension policy ===
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0..\deploy\force-uninstall-extension.ps1" -DistDir "%DIST_DIR%"
 if not exist "%POLICY_FILE%" goto policy_missing
 findstr /c:"mimicvault@local" "%POLICY_FILE%" >nul 2>nul
 if errorlevel 1 goto policy_unrelated
@@ -82,12 +87,14 @@ echo [INFO] XPI folder not found: %APPDATA%\MimicVault
 
 echo.
 echo === Done ===
-echo Restart Firefox: MimicVault should disappear from about:addons.
+echo MimicVault should already be gone from about:addons (step 2 above force-
+echo removed it via a temporary Firefox headless run).
 echo.
-echo If it still appears after restarting, policies.json was not where this
-echo script expected, or was already missing before this run. In that case
-echo Firefox is no longer enforcing the policy install, but it can leave the
-echo extension sitting in your profile as a normal, removable add-on.
+echo If it still appears after restarting Firefox, the headless removal step
+echo likely did not finish in time, or Firefox/policies.json was not where
+echo this script expected. In that case Firefox is no longer enforcing the
+echo policy install, but it can leave the extension sitting in your profile
+echo as a normal, removable add-on.
 echo Remove it by hand: open about:addons, find MimicVault, click its menu
 echo button, and choose Remove.
 pause
