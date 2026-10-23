@@ -9,7 +9,17 @@ $ErrorActionPreference = 'Stop'
 $scriptDir = $PSScriptRoot
 $repoRoot = Split-Path -Parent $scriptDir
 
-if ([string]::IsNullOrEmpty($DistDir)) { $DistDir = 'C:\Program Files\Firefox Developer Edition\distribution' }
+if ([string]::IsNullOrEmpty($DistDir)) {
+    $ffDir = & (Join-Path $scriptDir 'find-firefox.ps1')
+    if ($ffDir) {
+        $DistDir = Join-Path $ffDir 'distribution'
+        Write-Host "[OK] Firefox インストール先を自動検出: $ffDir"
+    } else {
+        $DistDir = 'C:\Program Files\Firefox Developer Edition\distribution'
+        Write-Host '[WARN] Firefox インストール先を自動検出できませんでした。既定パスにフォールバックします。'
+        Write-Host '       異なる場合は第1引数で distribution フォルダのパスを指定してください。'
+    }
+}
 $xpiDir = Join-Path $env:APPDATA 'MimicVault'
 $xpiPath = Join-Path $xpiDir 'mimicvault.xpi'
 $dest = Join-Path $DistDir 'policies.json'
