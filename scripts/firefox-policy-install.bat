@@ -4,7 +4,8 @@
 :: never parses multi-byte text (avoids CP932/UTF-8 mojibake). Do NOT add
 :: non-ASCII here.
 :: Usage: firefox-policy-install.bat ["<Firefox>\distribution"]
-::   Omit the arg to use the Firefox Developer Edition default distribution dir.
+::   Omit the arg to auto-detect the installed Firefox's distribution dir
+::   (falls back to the Developer Edition default path if detection fails).
 :: MIMICVAULT_CHAINED (set by install.bat) skips the final pause, since
 :: install.bat's own window stays open regardless.
 setlocal

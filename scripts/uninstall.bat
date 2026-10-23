@@ -12,7 +12,8 @@
 :: (window flashes and closes). Uses goto/labels instead of nested if/else blocks
 :: for the same reason (see ffmpeg_deploy.bat for the same style).
 :: Usage: double-click, or run from cmd: uninstaller.bat ["<Firefox>\distribution"]
-::   Omit the arg to use the Firefox Developer Edition default distribution dir.
+::   Omit the arg to auto-detect the installed Firefox's distribution dir
+::   (falls back to the Developer Edition default path if detection fails).
 
 :: Self-elevate: policies.json normally lives under Program Files, which needs
 :: administrator rights to delete. Same approach as install.bat.
@@ -29,7 +30,15 @@ if errorlevel 1 (
 
 setlocal
 set "DIST_DIR=%~1"
-if "%DIST_DIR%"=="" set "DIST_DIR=C:\Program Files\Firefox Developer Edition\distribution"
+if not "%DIST_DIR%"=="" goto dist_dir_set
+set "FIREFOX_DIR="
+for /f "delims=" %%D in ('powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0..\deploy\find-firefox.ps1" 2^>nul') do set "FIREFOX_DIR=%%D"
+if defined FIREFOX_DIR goto dist_dir_detected
+set "DIST_DIR=C:\Program Files\Firefox Developer Edition\distribution"
+goto dist_dir_set
+:dist_dir_detected
+set "DIST_DIR=%FIREFOX_DIR%\distribution"
+:dist_dir_set
 set "POLICY_FILE=%DIST_DIR%\policies.json"
 
 echo === MimicVault uninstaller Windows ===
