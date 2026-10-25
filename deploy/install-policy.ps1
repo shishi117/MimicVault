@@ -20,7 +20,12 @@ if ([string]::IsNullOrEmpty($DistDir)) {
         Write-Host '       異なる場合は第1引数で distribution フォルダのパスを指定してください。'
     }
 }
-$xpiDir = Join-Path $env:APPDATA 'MimicVault'
+# install.bat may have self-elevated via a *different* administrator account's
+# UAC credentials; when it did, $env:APPDATA here is that admin's, not the
+# user's whose Firefox will actually load this XPI. install.bat forwards the
+# original user's AppData path in MIMICVAULT_ORIG_APPDATA for that case.
+$appData = if ($env:MIMICVAULT_ORIG_APPDATA) { $env:MIMICVAULT_ORIG_APPDATA } else { $env:APPDATA }
+$xpiDir = Join-Path $appData 'MimicVault'
 $xpiPath = Join-Path $xpiDir 'mimicvault.xpi'
 $dest = Join-Path $DistDir 'policies.json'
 
