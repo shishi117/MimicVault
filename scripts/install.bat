@@ -85,3 +85,8 @@ echo.
 echo === All steps done ===
 START "" "C:\Program Files\Firefox Developer Edition\firefox.exe"
 pause
+
+set "FIREFOX_DIR="
+for /f "delims=" %%D in ('powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0..\deploy\find-firefox.ps1" 2^>nul') do set "FIREFOX_DIR=%%D"
+if defined FIREFOX_DIR START "" "%FIREFOX_DIR%\firefox.exe" about:config about:debugging#/runtime/this-firefox about:addons
+if not defined FIREFOX_DIR echo [WARN] Firefox install not found automatically. Start it manually.
