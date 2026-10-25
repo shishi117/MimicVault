@@ -83,4 +83,5 @@ call "%HERE%firefox-policy-install.bat" "%DISTDIR_ARG%"
 
 echo.
 echo === All steps done ===
+START "" "C:\Program Files\Firefox Developer Edition\firefox.exe"
 pause
