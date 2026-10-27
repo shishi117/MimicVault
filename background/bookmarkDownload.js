@@ -55,6 +55,50 @@ function hasUsableBookmarkTitle(node) {
   return !!t && t !== node.url;
 }
 
+// ─── ブックマークのサムネイル取得（OGP画像） ───────────────────────────────────
+// ブックマークは未訪問のURLもあり、動画一覧（thumbnails.js）のようにタブ内の
+// <video> から直接フレームを取れない。タブを開いて再生させるのはコストが高いので、
+// ページHTMLを直接fetchしてOGP（og:image / twitter:image）を抜き出す方法で代替する。
+// 既知の簡略化: OGPが無いページはサムネイル無し（プレースホルダー表示のまま）。
+const BOOKMARK_THUMB_TIMEOUT = 8000;
+const bookmarkThumbCache = new Map(); // url -> サムネイルURL（null=見つからず）
+
+function parseOgImage(html, baseUrl) {
+  const metaTags = html.match(/<meta\b[^>]*>/gi) || [];
+  let fallback = null;
+  for (const tag of metaTags) {
+    const nameMatch    = tag.match(/\b(?:property|name)\s*=\s*["']([^"']+)["']/i);
+    const contentMatch = tag.match(/\bcontent\s*=\s*["']([^"']+)["']/i);
+    if (!nameMatch || !contentMatch) continue;
+    const key = nameMatch[1].toLowerCase();
+    if (key === "og:image") return resolveThumbUrl(contentMatch[1], baseUrl);
+    if (key === "twitter:image" && !fallback) fallback = contentMatch[1];
+  }
+  return fallback ? resolveThumbUrl(fallback, baseUrl) : null;
+}
+
+function resolveThumbUrl(url, baseUrl) {
+  try { return new URL(url, baseUrl).href; } catch (_) { return url; }
+}
+
+async function getBookmarkThumbnail(url) {
+  if (bookmarkThumbCache.has(url)) return bookmarkThumbCache.get(url);
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), BOOKMARK_THUMB_TIMEOUT);
+  let thumbnail = null;
+  try {
+    const res  = await fetch(url, { signal: controller.signal });
+    thumbnail  = parseOgImage(await res.text(), url);
+  } catch (_) {
+    thumbnail = null;
+  } finally {
+    clearTimeout(timer);
+  }
+  bookmarkThumbCache.set(url, thumbnail);
+  return thumbnail;
+}
+
 // ─── 「ダウンロード済み」フォルダの確保 ───────────────────────────────────────
 // 元のブックマークと同じ場所に作る（固定のブックマークメニュー直下ではない）。
 // フォルダごとにキャッシュする: 同じ親フォルダ内で複数件処理する一括DL中に
@@ -295,7 +339,13 @@ async function getBookmarkFolders() {
 
 async function getBookmarkChildren(folderId) {
   const children = await browser.bookmarks.getChildren(folderId);
-  return children.filter(c => c.url).map(c => ({ id: c.id, title: c.title, url: c.url }));
+  return children.filter(c => c.url).map(c => ({
+    id:    c.id,
+    title: c.title,
+    url:   c.url,
+    // 保存予定のファイル名（拡張子は実際の検出後に決まるため、ここでは拡張子抜きのステムのみ）
+    filenameStem: applyFilenameTemplate(bookmarkFilenameStem(c.title), null),
+  }));
 }
 
 // ─── エントリ: 選択ブックマークを逐次処理 ─────────────────────────────────────
@@ -315,4 +365,13 @@ async function downloadBookmarks(ids) {
   const got  = bookmarkFilenameStem("a b:c?d");
   const want = "a_b＊c＊d";
   if (got !== want) console.error("[bookmarkDL] selfCheck 失敗:", JSON.stringify(got), "≠", JSON.stringify(want));
+})();
+
+// 自己チェック: og:image優先・相対URL解決（twitter:imageへのフォールバックも確認）
+(function selfCheckOgImage() {
+  const html = '<meta name="twitter:image" content="https://cdn.example.com/x.jpg">'
+             + '<meta property="og:image" content="/img/thumb.jpg">';
+  const got  = parseOgImage(html, "https://example.com/video/123");
+  const want = "https://example.com/img/thumb.jpg";
+  if (got !== want) console.error("[bookmarkDL] selfCheck(ogImage) 失敗:", JSON.stringify(got), "≠", JSON.stringify(want));
 })();
