@@ -25,6 +25,10 @@ function toggleBookmarkPanel() {
 function initBookmarkPanel() {
   if (!elBookmarkPanel) return;
 
+  if (elBookmarkBackBtn) {
+    elBookmarkBackBtn.addEventListener("click", () => toggleBookmarkPanel());
+  }
+
   elBookmarkFolder.addEventListener("change", () => loadBookmarkChildren(elBookmarkFolder.value));
   elBookmarkSelAll.addEventListener("change", () => {
     elBookmarkList.querySelectorAll(".bookmark-cb").forEach(cb => { cb.checked = elBookmarkSelAll.checked; });

@@ -15,6 +15,12 @@
 
 .bookmark-panel #bookmark-folder { flex: 1; }
 
+.bookmark-back-btn {
+  flex-shrink: 0;
+  font-size: 12px;
+  padding: 2px 6px;
+}
+
 .bookmark-selall {
   flex: 1;
   display: flex;

@@ -18,6 +18,7 @@ const elSettingsBtn        = document.getElementById("settings-btn");
 const elClosePanelBtn      = document.getElementById("close-panel-btn");
 // ブックマーク一括DLパネル
 const elBookmarkBtn        = document.getElementById("bookmark-btn");
+const elBookmarkBackBtn    = document.getElementById("bookmark-back-btn");
 const elBookmarkPanel      = document.getElementById("bookmark-panel");
 const elBookmarkFolder     = document.getElementById("bookmark-folder");
 const elBookmarkSelAll     = document.getElementById("bookmark-selall");
