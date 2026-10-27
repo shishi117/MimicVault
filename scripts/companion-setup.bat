@@ -15,9 +15,4 @@ call "%~dp0ffmpeg_deploy.bat"
 call "%~dp0companion-build.bat"
 call "%~dp0companion-install.bat" "%COMPANION_DIR%"
 
-set "FIREFOX_DIR="
-for /f "delims=" %%D in ('powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0..\deploy\find-firefox.ps1" 2^>nul') do set "FIREFOX_DIR=%%D"
-if defined FIREFOX_DIR START "" "%FIREFOX_DIR%\firefox.exe"
-if not defined FIREFOX_DIR echo [WARN] Firefox install not found automatically. Start it manually.
-
 if not defined MIMICVAULT_CHAINED pause

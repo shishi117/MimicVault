@@ -11,12 +11,28 @@
 # 混在していても壊さないようにするため）。uninstall.bat 側の既存処理
 # （policies.json 自体の削除判定）はこのスクリプトの後に続けて行われる。
 #
-# 既知の簡略化: headless 起動後、固定で10秒待ってから終了させる。Firefox が
+# 重要: 一時ポリシーでは ExtensionSettings 側の対象ID（force_installed指定）を
+# 必ず取り除く。残したまま Extensions.Uninstall だけ追加すると、Firefoxは
+# 「アンインストールしろ」と「強制インストールし続けろ」を同時に受け取り、
+# 継続的に強制される ExtensionSettings の force_installed が優先されて
+# Uninstall アクションが相殺され、拡張機能が削除されない（実際に発生した
+# 不具合）。
+#
+# 既知の簡略化: headless 起動後、固定で待ってから終了させる。Firefox が
 # ポリシーを処理し終えるタイミングを確実に検知する手段がないための妥協
-# （上限値: 10秒）。重い/遅い環境では間に合わず失敗する可能性があり、その
-# 場合は about:addons からの手動削除に自然にフォールバックする（エラーには
-# ならない）。アップグレードパス: 起動した Firefox プロセスを定期的に監視し、
-# extensions.json から該当IDが消えたことを検知してから終了させる方式に変更。
+# （上限値: 12秒 + 正常終了への切り替え猶予2秒）。重い/遅い環境では間に合わず
+# 失敗する可能性があり、その場合は about:addons からの手動削除に自然に
+# フォールバックする（エラーにはならない）。アップグレードパス: 起動した
+# Firefox プロセスを定期的に監視し、extensions.json から該当IDが消えたことを
+# 検知してから終了させる方式に変更。
+#
+# 既知の簡略化: ここで起動する headless Firefox は、このスクリプト自身の
+# プロセス権限(= uninstall.bat を昇格させたユーザー)で動く。UAC 承認時に
+# 別の管理者アカウントの資格情報を使った場合、その管理者のFirefoxプロファ
+# イルが操作され、実際に拡張機能を使っていたユーザーのプロファイルには
+# 届かない（about:addons から手動削除へ自然にフォールバックするだけで、
+# エラーにはならない）。アップグレードパス: 元ユーザーとしてプロセスを
+# 起動する(トークンの模倣/スケジュールタスク経由)実装に変更。
 
 $ErrorActionPreference = 'SilentlyContinue'
 $EXT_ID = 'mimicvault@local'
@@ -58,6 +74,13 @@ try {
 if (-not $json.policies) {
     $json | Add-Member -NotePropertyName policies -NotePropertyValue ([PSCustomObject]@{}) -Force
 }
+
+# force_installed指定が残っているとUninstallアクションと相殺されるため、
+# ExtensionSettings側の対象IDだけを一時的に取り除く（他のIDの設定は保持）。
+if ($json.policies.ExtensionSettings -and ($json.policies.ExtensionSettings.PSObject.Properties.Name -contains $EXT_ID)) {
+    $json.policies.ExtensionSettings.PSObject.Properties.Remove($EXT_ID)
+}
+
 if (-not $json.policies.Extensions) {
     $json.policies | Add-Member -NotePropertyName Extensions -NotePropertyValue ([PSCustomObject]@{}) -Force
 }
@@ -81,8 +104,15 @@ Start-Sleep -Seconds 1
 Write-Host '[INFO] Firefox をヘッドレスで起動し、ポリシーを適用させています...'
 $proc = Start-Process -FilePath $firefoxExe -ArgumentList '-headless', '-no-remote' -PassThru -ErrorAction SilentlyContinue
 if ($proc) {
-    Start-Sleep -Seconds 10
-    Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 12
+    if (-not $proc.HasExited) {
+        # まず正常終了を試みる（extensions.json等の書き込みを完了させる猶予）。
+        Stop-Process -Id $proc.Id -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 2
+    }
+    if (-not $proc.HasExited) {
+        Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+    }
 } else {
     Write-Host '[WARN] Firefox の起動に失敗しました。'
 }

@@ -20,20 +20,38 @@
 ::   (falls back to the Developer Edition default path if detection fails).
 
 :: Self-elevate: policies.json normally lives under Program Files, which needs
-:: administrator rights to delete. Same approach as install.bat.
+:: administrator rights to delete. Same approach as install.bat, including the
+:: same gotcha: approving UAC with a *different* administrator account's
+:: credentials switches %APPDATA%/HKCU to that admin's, not ours, so the
+:: companion app's manifest/registry key and the XPI copy would be looked up
+:: in the wrong place. Forward our own identity across the elevation the same
+:: way install.bat does.
+for /f "usebackq delims=" %%S in (`powershell -NoProfile -Command "([System.Security.Principal.WindowsIdentity]::GetCurrent()).User.Value"`) do set "MIMICVAULT_PRE_SID=%%S"
 net session >nul 2>&1
 if errorlevel 1 (
   echo [INFO] Requesting administrator privileges...
   if "%~1"=="" (
-    powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs"
+    powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -ArgumentList '_','%USERNAME%','%USERPROFILE%','%MIMICVAULT_PRE_SID%' -Verb RunAs"
   ) else (
-    powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -ArgumentList '%~1' -Verb RunAs"
+    powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -ArgumentList '%~1','%USERNAME%','%USERPROFILE%','%MIMICVAULT_PRE_SID%' -Verb RunAs"
   )
   exit /b
 )
 
 setlocal
+if not "%~2"=="" (
+  set "MIMICVAULT_ORIG_USER=%~2"
+  set "MIMICVAULT_ORIG_PROFILE=%~3"
+  set "MIMICVAULT_ORIG_SID=%~4"
+) else (
+  set "MIMICVAULT_ORIG_USER=%USERNAME%"
+  set "MIMICVAULT_ORIG_PROFILE=%USERPROFILE%"
+  set "MIMICVAULT_ORIG_SID=%MIMICVAULT_PRE_SID%"
+)
+set "MIMICVAULT_ORIG_APPDATA=%MIMICVAULT_ORIG_PROFILE%\AppData\Roaming"
+
 set "DIST_DIR=%~1"
+if "%DIST_DIR%"=="_" set "DIST_DIR="
 if not "%DIST_DIR%"=="" goto dist_dir_set
 set "FIREFOX_DIR="
 for /f "delims=" %%D in ('powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0..\deploy\find-firefox.ps1" 2^>nul') do set "FIREFOX_DIR=%%D"
@@ -49,16 +67,16 @@ echo === MimicVault uninstaller Windows ===
 
 echo.
 echo === [1/2] Companion app Native Messaging host ===
-reg delete "HKCU\Software\Mozilla\NativeMessagingHosts\mimic_vault" /f >nul 2>nul
+reg delete "HKU\%MIMICVAULT_ORIG_SID%\Software\Mozilla\NativeMessagingHosts\mimic_vault" /f >nul 2>nul
 if errorlevel 1 echo [INFO] Registry key not found, nothing to remove.
-if not errorlevel 1 echo [OK] Registry key removed: HKCU\Software\Mozilla\NativeMessagingHosts\mimic_vault
+if not errorlevel 1 echo [OK] Registry key removed: HKU\%MIMICVAULT_ORIG_SID%\Software\Mozilla\NativeMessagingHosts\mimic_vault
 
-if not exist "%APPDATA%\mimic_vault" goto skip_manifest
-rd /s /q "%APPDATA%\mimic_vault"
-echo [OK] Manifest folder removed: %APPDATA%\mimic_vault
+if not exist "%MIMICVAULT_ORIG_APPDATA%\mimic_vault" goto skip_manifest
+rd /s /q "%MIMICVAULT_ORIG_APPDATA%\mimic_vault"
+echo [OK] Manifest folder removed: %MIMICVAULT_ORIG_APPDATA%\mimic_vault
 goto manifest_done
 :skip_manifest
-echo [INFO] Manifest folder not found: %APPDATA%\mimic_vault
+echo [INFO] Manifest folder not found: %MIMICVAULT_ORIG_APPDATA%\mimic_vault
 :manifest_done
 
 echo.
@@ -77,12 +95,12 @@ goto policy_done
 echo [INFO] Policy file not found: %POLICY_FILE%
 :policy_done
 
-if not exist "%APPDATA%\MimicVault" goto skip_xpi
-rd /s /q "%APPDATA%\MimicVault"
-echo [OK] XPI folder removed: %APPDATA%\MimicVault
+if not exist "%MIMICVAULT_ORIG_APPDATA%\MimicVault" goto skip_xpi
+rd /s /q "%MIMICVAULT_ORIG_APPDATA%\MimicVault"
+echo [OK] XPI folder removed: %MIMICVAULT_ORIG_APPDATA%\MimicVault
 goto xpi_done
 :skip_xpi
-echo [INFO] XPI folder not found: %APPDATA%\MimicVault
+echo [INFO] XPI folder not found: %MIMICVAULT_ORIG_APPDATA%\MimicVault
 :xpi_done
 
 echo.
