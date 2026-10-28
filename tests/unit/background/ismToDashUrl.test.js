@@ -1,11 +1,13 @@
-// background/test/ismToDashUrl.test.js — MimicVault
-// ismToDashCandidates / isMssUrl の自己チェック。実行: node background/test/ismToDashUrl.test.js
+// tests/unit/background/ismToDashUrl.test.js — MimicVault
+// ismToDashCandidates / isMssUrl / ismBaseUrl の自己チェック。
+// 実行: npx vitest run tests/unit/background/ismToDashUrl.test.js
 
 "use strict";
 
 const assert = require("assert");
-const { isMssUrl, ismToDashCandidates } = require("../ismToDashUrl");
+const { isMssUrl, ismToDashCandidates, ismBaseUrl } = require("../../../background/ismToDashUrl");
 
+test("isMssUrl/ismToDashCandidates/ismBaseUrl: MSS URL判定とDASH候補/ベースURL分解", () => {
 // ── isMssUrl ──────────────────────────────────────────────────────────────
 assert.ok(isMssUrl("https://h/p/video.ism/Manifest"),            "大文字 Manifest");
 assert.ok(isMssUrl("https://h/p/video.ism/manifest"),            "小文字 manifest");
@@ -42,4 +44,20 @@ assert.deepStrictEqual(
   "MSS でない URL は元 URL 1 件のみ"
 );
 
-console.log("ismToDashUrl.test.js: OK");
+// ── ismBaseUrl ───────────────────────────────────────────────────────────
+assert.deepStrictEqual(
+  ismBaseUrl("https://h/p/video.ism/Manifest"),
+  { base: "https://h/p/video.ism", tail: "" },
+  "Manifest 直後で終わる URL は tail が空"
+);
+assert.deepStrictEqual(
+  ismBaseUrl("https://h/p/video.ism/manifest(format=m3u8-aapl)?t=1"),
+  { base: "https://h/p/video.ism", tail: "?t=1" },
+  "format付き + クエリは tail に残る"
+);
+assert.strictEqual(
+  ismBaseUrl("https://h/p/video.mpd"),
+  null,
+  "MSS でない URL は null"
+);
+});

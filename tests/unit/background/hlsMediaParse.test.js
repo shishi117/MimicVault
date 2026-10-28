@@ -1,12 +1,14 @@
-// background/test/hlsMediaParse.test.js — MimicVault
-// EXT-X-MAP(fMP4初期化セグメント)解析の自己チェック。実行: node background/test/hlsMediaParse.test.js
+// tests/unit/background/hlsMediaParse.test.js — MimicVault
+// EXT-X-MAP(fMP4初期化セグメント)解析の自己チェック。実行: npx vitest run tests/unit/background/hlsMediaParse.test.js
 
 "use strict";
 
 const assert = require("assert");
-const { parseMediaPlaylist } = require("../hlsMediaParse");
+const { parseMediaPlaylist } = require("../../../background/hlsMediaParse");
 
 const BASE = "https://cdn.example/video/";
+
+test("parseMediaPlaylist: EXT-X-MAPの有無でinitUriを解決する", () => {
 
 // ── 従来の MPEG-TS プレイリスト（EXT-X-MAP 無し）── initUri は null ───────────
 const tsPlaylist = `#EXTM3U
@@ -34,5 +36,4 @@ seg1.m4s
 const fmp4Result = parseMediaPlaylist(fmp4Playlist, BASE);
 assert.strictEqual(fmp4Result.initUri, BASE + "init.mp4", "EXT-X-MAP の URI を相対→絶対URLに解決する");
 assert.strictEqual(fmp4Result.segments.length, 2, "セグメントは2つ（init はカウントしない）");
-
-console.log("hlsMediaParse.test.js: OK");
+});

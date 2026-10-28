@@ -1,12 +1,14 @@
-// background/test/downloadDirectRanged.test.js — MimicVault
-// buildChunkRanges の自己チェック。実行: node background/test/downloadDirectRanged.test.js
+// tests/unit/background/downloadDirectRanged.test.js — MimicVault
+// buildChunkRanges の自己チェック。実行: npx vitest run tests/unit/background/downloadDirectRanged.test.js
 
 "use strict";
 
 const assert = require("assert");
-const { buildChunkRanges } = require("../downloadDirectRanged");
+const { buildChunkRanges } = require("../../../background/downloadDirectRanged");
 
 const MAX = 10 * 1024 * 1024; // RANGE_CHUNK_MAX_BYTES と同じ値
+
+test("buildChunkRanges: 上限(10MB)に収まるファイルは分割しない", () => {
 
 // ── 上限(10MB)未満のファイルは分割しない ────────────────────────────────────
 assert.deepStrictEqual(buildChunkRanges(500_000), [[0, 499999]], "小さいファイルは1チャンク");
@@ -43,5 +45,4 @@ function assertNoGapsAndWithinRange(ranges, totalBytes) {
   assert.ok(ranges.length > 6, `1GBなら6チャンクより多く分割される (${ranges.length})`);
   assertNoGapsAndWithinRange(ranges, totalBytes);
 }
-
-console.log("downloadDirectRanged.test.js: OK");
+});
