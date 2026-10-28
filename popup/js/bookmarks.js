@@ -84,29 +84,10 @@ async function loadBookmarkChildren(folderId) {
     cb.type = "checkbox";
     cb.className = "bookmark-cb";
 
-    // サムネイル枠は media-thumb/thumb-img を再利用（表示だけ少し小さくする）
-    const thumbWrap = document.createElement("div");
-    thumbWrap.className = "media-thumb bookmark-thumb";
-    const thumbImg = document.createElement("img");
-    thumbImg.className = "thumb-img";
-    thumbImg.alt = "";
-    thumbImg.dataset.url = b.url;
-    thumbWrap.appendChild(thumbImg);
-
-    const textWrap = document.createElement("div");
-    textWrap.className = "bookmark-text";
-
     const title = document.createElement("span");
     title.className = "bookmark-title";
     title.textContent = b.title || b.url;
     title.title = b.url;
-
-    const filename = document.createElement("span");
-    filename.className = "bookmark-filename";
-    filename.textContent = `→ ${b.filenameStem}.*`;
-    filename.title = "保存時のファイル名（拡張子はダウンロード時の検出結果で決まります）";
-
-    textWrap.append(title, filename);
 
     const size = document.createElement("span");
     size.className = "bookmark-size";
@@ -114,53 +95,8 @@ async function loadBookmarkChildren(folderId) {
     const status = document.createElement("span");
     status.className = "bookmark-status";
 
-    li.append(cb, thumbWrap, textWrap, size, status);
+    li.append(cb, title, size, status);
     elBookmarkList.appendChild(li);
-  }
-
-  requestBookmarkThumbnails();
-}
-
-// ─── サムネイル取得（OGP画像をbackground経由で取得、2並列キュー） ──────────────
-// thumbnails.js の requestThumbnails/enqueueThumb と同じキュー方式。取得元が
-// 「タブ内の<video>キャプチャ」か「ページHTMLのOGP」かが違うだけで共通化はしない
-// （browser.tabs.sendMessage と browser.runtime.sendMessage で宛先が異なるため）。
-const BOOKMARK_THUMB_CONCURRENCY = 2;
-let bookmarkThumbRunning = 0;
-const bookmarkThumbQueue = [];
-
-function requestBookmarkThumbnails() {
-  const imgs = elBookmarkList.querySelectorAll(".thumb-img:not(.thumb-img--loaded):not(.thumb-img--failed)");
-  for (const img of imgs) enqueueBookmarkThumb(img.dataset.url, img);
-}
-
-function enqueueBookmarkThumb(url, imgEl) {
-  bookmarkThumbQueue.push({ url, imgEl });
-  drainBookmarkThumbQueue();
-}
-
-function drainBookmarkThumbQueue() {
-  while (bookmarkThumbRunning < BOOKMARK_THUMB_CONCURRENCY && bookmarkThumbQueue.length > 0) {
-    const task = bookmarkThumbQueue.shift();
-    bookmarkThumbRunning++;
-    fetchBookmarkThumb(task).finally(() => {
-      bookmarkThumbRunning--;
-      drainBookmarkThumbQueue();
-    });
-  }
-}
-
-async function fetchBookmarkThumb({ url, imgEl }) {
-  try {
-    const res = await browser.runtime.sendMessage({ type: "GET_BOOKMARK_THUMBNAIL", url });
-    if (res?.ok && res.thumbnail) {
-      imgEl.src = res.thumbnail;
-      imgEl.classList.add("thumb-img--loaded");
-    } else {
-      imgEl.classList.add("thumb-img--failed");
-    }
-  } catch (_) {
-    imgEl.classList.add("thumb-img--failed");
   }
 }
 

@@ -233,14 +233,6 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     }
 
-    // ブックマークのサムネイル（OGP画像）取得。パネル側がサムネイル枠ごとに呼ぶ。
-    case "GET_BOOKMARK_THUMBNAIL": {
-      getBookmarkThumbnail(message.url)
-        .then(thumbnail => sendResponse({ ok: true, thumbnail }))
-        .catch(err      => sendResponse({ ok: false, error: err.message }));
-      return true;
-    }
-
     // パネル iframe が一括DL中の各行の進捗をポーリングで取りに来る
     // （bookmarkProgressState 参照。GET_HLS_PROGRESS と同じ理由）。
     case "GET_BOOKMARK_PROGRESS": {
