@@ -1,5 +1,5 @@
-// background/test/segmentGroups.test.js — MimicVault
-// 断片検出・グループ化の自己チェック。実行: node background/test/segmentGroups.test.js
+// tests/unit/background/segmentGroups.test.js — MimicVault
+// 断片検出・グループ化の自己チェック。実行: npx vitest run tests/unit/background/segmentGroups.test.js
 
 "use strict";
 
@@ -11,8 +11,9 @@ global.addToStore = (tabId, item) => {
   (global.tabMediaStore[tabId] ??= new Map()).set(item.url, item);
   return true;
 };
-const { isSegmentUrl, recordSegment, getSegmentGroupUrls, clearSegmentGroups } = require("../segmentGroups");
+const { isSegmentUrl, recordSegment, getSegmentGroupUrls, clearSegmentGroups } = require("../../../background/segmentGroups");
 
+test("isSegmentUrl/recordSegment/getSegmentGroupUrls/clearSegmentGroups: 断片検出とグループ化", () => {
 // ── isSegmentUrl ────────────────────────────────────────────────────────────
 assert.ok(isSegmentUrl("https://h/v/720/5.m4s"),          ".m4s は断片");
 assert.ok(isSegmentUrl("https://h/v/720/chunk.cmfv"),     ".cmfv は断片");
@@ -93,5 +94,4 @@ assert.ok(
   global.tabMediaStore[TAB4] && [...global.tabMediaStore[TAB4].values()].some(it => it.isSegmentGroup),
   "clearSegmentGroups 後の再リロードでも収集ストリーム item が再登録される"
 );
-
-console.log("segmentGroups.test.js: OK");
+});

@@ -6,9 +6,11 @@
   "scripts": {
     "lint": "web-ext lint",
     "run": "web-ext run",
-    "build": "web-ext build --overwrite-dest"
+    "build": "web-ext build --overwrite-dest",
+    "test": "vitest run"
   },
   "devDependencies": {
+    "vitest": "^5.0.5",
     "web-ext": "^8.0.0"
   }
 }

@@ -1,0 +1,6 @@
+#!/bin/sh
+# .githooks/pre-push — MimicVault
+# push 前に単体テスト(tests/unit, vitest)を実行し、失敗していれば push を中止する。
+# 有効化: git config core.hooksPath .githooks （リポジトリごとに1回でよい）
+
+npm test

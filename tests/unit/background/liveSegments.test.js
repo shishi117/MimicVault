@@ -1,7 +1,7 @@
-// background/test/liveSegments.test.js — MimicVault
+// tests/unit/background/liveSegments.test.js — MimicVault
 // liveChunkFilename/liveSessionFilename の自己チェック:
 // パネルに表示するファイル名が flushChunk の実際の保存ファイル名と一致することを確認する。
-// 実行: node background/test/liveSegments.test.js
+// 実行: npx vitest run tests/unit/background/liveSegments.test.js
 
 "use strict";
 
@@ -9,10 +9,11 @@ const assert = require("assert");
 
 // liveSegments.js が参照する applyFilenameTemplate 等をスタブしてから読み込む
 global.settingsCache = { filenameTemplate: "%title" };
-global.applyFilenameTemplate = require("../filename").applyFilenameTemplate;
+global.applyFilenameTemplate = require("../../../background/filename").applyFilenameTemplate;
 
-const { liveChunkFilename, liveSessionFilename } = require("../liveSegments");
+const { liveChunkFilename, liveSessionFilename } = require("../../../background/liveSegments");
 
+test("liveChunkFilename/liveSessionFilename: 表示ファイル名が保存時の形式と一致する", () => {
 // ── flushChunk が downloads.download に渡す実際のファイル名と同じ形式 ──────────
 assert.strictEqual(
   liveChunkFilename("stream", 1),
@@ -52,5 +53,4 @@ assert.strictEqual(
   "REC_stream_chunk001.ts",
   "filenameTemplate のカスタム設定も反映される"
 );
-
-console.log("liveSegments.test.js: OK");
+});

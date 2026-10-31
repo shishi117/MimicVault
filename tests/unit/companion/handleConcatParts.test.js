@@ -1,14 +1,14 @@
-// companion/lib/test/handleConcatParts.test.js — MimicVault
-// concatFiles の自己チェック。実行: node companion/lib/test/handleConcatParts.test.js
+// tests/unit/companion/handleConcatParts.test.js — MimicVault
+// concatFiles の自己チェック。実行: npx vitest run tests/unit/companion/handleConcatParts.test.js
 "use strict";
 
 const assert = require("assert");
 const fs     = require("fs");
 const path   = require("path");
 const os     = require("os");
-const { concatFiles } = require("../handleConcatParts");
+const { concatFiles } = require("../../../companion/lib/handleConcatParts");
 
-(async () => {
+test("concatFiles: 渡した順番通りにファイルを欠落・重複なく連結する", async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mv-concat-test-"));
   const partA = path.join(dir, "a.part");
   const partB = path.join(dir, "b.part");
@@ -28,5 +28,4 @@ const { concatFiles } = require("../handleConcatParts");
   );
 
   fs.rmSync(dir, { recursive: true, force: true });
-  console.log("handleConcatParts.test.js: OK");
-})();
+});

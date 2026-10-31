@@ -1,12 +1,12 @@
-// background/test/mssInitSegment.test.js — MimicVault
-// buildMssInitSegment の自己チェック。実行: node background/test/mssInitSegment.test.js
+// tests/unit/background/mssInitSegment.test.js — MimicVault
+// buildMssInitSegment の自己チェック。実行: npx vitest run tests/unit/background/mssInitSegment.test.js
 
 "use strict";
 
 const assert = require("assert");
 const {
   buildMssInitSegment, parseAvcCodecPrivateData, hexToBytes,
-} = require("../mssInitSegment");
+} = require("../../../background/mssInitSegment");
 
 // Annex-B: 00000001 + SPS(NAL type7) + 00000001 + PPS(NAL type8)
 // SPS/PPS の内容自体は本テストの検証範囲外(ボックス構造の健全性を確認する)。
@@ -28,6 +28,7 @@ function containsFourCC(buf, tag) {
   return false;
 }
 
+test("buildMssInitSegment: AVC/AACのMP4初期化セグメントを構築し、異常系はエラーにする", () => {
 // ── parseAvcCodecPrivateData ──────────────────────────────────────────────
 {
   const { sps, pps } = parseAvcCodecPrivateData(CPD_H264);
@@ -86,5 +87,4 @@ assert.throws(
   /avc_codec_private_data_missing_sps_pps/,
   "SPS/PPSが無いH264は解析エラー"
 );
-
-console.log("mssInitSegment.test.js: OK");
+});

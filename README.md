@@ -60,6 +60,25 @@ npm run run -- --firefox=deved   # Developer Edition を一時プロファイル
 `web-ext run` は Firefox 終了で消えます（永続インストールではありません）。
 プライベートウィンドウ許可 pref は `web-ext-config.mjs` で自動付与されます。
 
+### 単体テスト
+`tests/unit/` に [Vitest](https://vitest.dev/) ベースの単体テストがあります
+（Node で `require` できる純粋ロジック関数が対象。`background/*.js` / `companion/lib/*.js`）。
+
+```bash
+npm install
+npm test        # = vitest run
+```
+
+push 前にもこのテストを自動実行したい場合は、リポジトリに同梱した Git フック
+（`.githooks/pre-push`）を一度だけ有効化してください（クローンごとに1回でよい、個人の
+`.git/hooks` ではなくリポジトリ内のフォルダを参照する設定のため、他の開発者にも配布されます）。
+
+```bash
+git config core.hooksPath .githooks
+```
+
+テストが失敗している状態では `git push` がブロックされます。
+
 ### 永続インストール（enterprise policy で自動追加）
 `web-ext build` した XPI を、Firefox の `policies.json`（`ExtensionSettings` →
 `force_installed`）で永続的に自動追加します。プライベートウィンドウ許可も同時に配布されます。
